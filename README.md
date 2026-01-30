@@ -5,10 +5,10 @@ The system detects, validates, and visualizes physical exercises in real time us
 
 This project prioritizes:
 
-* 🧠 Deterministic behavior
-* 🔒 Privacy (no cloud by default)
-* ⚡ Performance on limited hardware
-* 🧩 Evolvable exercise definitions
+- 🧠 Deterministic behavior
+- 🔒 Privacy (no cloud by default)
+- ⚡ Performance on limited hardware
+- 🧩 Evolvable exercise definitions
 
 ---
 
@@ -16,12 +16,12 @@ This project prioritizes:
 
 The mirror:
 
-* Captures the user’s body pose via camera
-* Compares it against an **ideal exercise definition** ("ghost")
-* Validates whether the exercise was performed correctly
-* Provides **real-time visual feedback**
-* Stores results **locally**
-* Can be controlled from a **mobile phone via QR code**
+- Captures the user’s body pose via camera
+- Compares it against an **ideal exercise definition** ("ghost")
+- Validates whether the exercise was performed correctly
+- Provides **real-time visual feedback**
+- Stores results **locally**
+- Can be controlled from a **mobile phone via QR code**
 
 No touchscreen. No cloud. No heavy GPU requirements.
 
@@ -57,9 +57,9 @@ An exercise is considered **completed** if:
 
 This is implemented using:
 
-* Finite State Machines (FSM)
-* Directed graphs
-* Temporal constraints
+- Finite State Machines (FSM)
+- Directed graphs
+- Temporal constraints
 
 ---
 
@@ -81,12 +81,11 @@ Exercises are defined as **versioned JSON files**.
 
 Each exercise specifies:
 
-* Which joints / angles are involved
-* Expected angle ranges
-* The sequence of movements
-* Parallel steps
-* Temporal constraints between steps
-
+- Which joints / angles are involved
+- Expected angle ranges
+- The sequence of movements
+- Parallel steps
+- Temporal constraints between steps
 
 ### Example (simplified)
 
@@ -100,9 +99,7 @@ Each exercise specifies:
   "description": "...",
   "muscle_groups": ["...", "...", "...", "..."],
   "difficulty": "intermedio",
-  "instructions": [
-    "...",
-  ],
+  "instructions": ["..."],
   "signals": {
     "knee_angle": {
       "type": "angle",
@@ -194,9 +191,9 @@ Many exercises involve **simultaneous joint movements**.
 
 Instead of a linear sequence, each angle is modeled as a **directed graph**:
 
-* Nodes represent valid angle states
-* Edges represent allowed transitions
-* Multiple graphs run in parallel
+- Nodes represent valid angle states
+- Edges represent allowed transitions
+- Multiple graphs run in parallel
 
 The exercise progresses only if all required paths advance coherently.
 
@@ -208,14 +205,14 @@ Exercises often require **timing relationships** between joints.
 
 Examples:
 
-* Knee bend must occur within 300 ms of hip bend
-* Arms must reach extension after torso stabilization
+- Knee bend must occur within 300 ms of hip bend
+- Arms must reach extension after torso stabilization
 
 Each constraint defines:
 
-* Source step
-* Target step
-* Allowed time window
+- Source step
+- Target step
+- Allowed time window
 
 Multiple constraints can be active simultaneously.
 
@@ -225,16 +222,16 @@ Multiple constraints can be active simultaneously.
 
 Each exercise execution is governed by an FSM:
 
-* `IDLE`
-* `IN_PROGRESS`
-* `FAILED`
-* `COMPLETED`
+- `IDLE`
+- `IN_PROGRESS`
+- `FAILED`
+- `COMPLETED`
 
 The FSM:
 
-* Tracks current graph nodes
-* Validates constraints
-* Handles resets on divergence
+- Tracks current graph nodes
+- Validates constraints
+- Handles resets on divergence
 
 This guarantees **predictable behavior** and clear outcomes.
 
@@ -244,9 +241,9 @@ This guarantees **predictable behavior** and clear outcomes.
 
 The mirror displays:
 
-* A **ghost pose** (ideal execution)
-* The **user’s real-time pose**
-* Visual feedback layers (angles, warnings, success)
+- A **ghost pose** (ideal execution)
+- The **user’s real-time pose**
+- Visual feedback layers (angles, warnings, success)
 
 Rendering is done using **Canvas 2D** for performance and simplicity.
 
@@ -260,9 +257,9 @@ The mirror has **no touchscreen**.
 
 Control options:
 
-* QR code displayed on the mirror
-* Mobile web interface (local network)
-* Optional basic gestures or physical button
+- QR code displayed on the mirror
+- Mobile web interface (local network)
+- Optional basic gestures or physical button
 
 The mobile UI communicates with the mirror via a **local HTTP / WebSocket API**.
 
@@ -274,15 +271,15 @@ All data is stored **locally**.
 
 Stored data includes:
 
-* Exercises (imported from JSON)
-* Tutor-defined exercises
-* Exercise runs
-* Scores and metrics
+- Exercises (imported from JSON)
+- Tutor-defined exercises
+- Exercise runs
+- Scores and metrics
 
 The database:
 
-* Is never placed in `/public`
-* Is never accessed directly by clients
+- Is never placed in `/public`
+- Is never accessed directly by clients
 
 ---
 
@@ -292,11 +289,11 @@ Target hardware: **embedded or low-power systems** (SBCs, mini PCs, or equivalen
 
 To ensure smooth performance across different hardware vendors:
 
-* Heavy logic runs in **Web Workers**
-* Rendering stays on the main thread
-* Only one ML model runs at a time
-* Hardware-specific optimizations are isolated
-* No cloud dependencies
+- Heavy logic runs in **Web Workers**
+- Rendering stays on the main thread
+- Only one ML model runs at a time
+- Hardware-specific optimizations are isolated
+- No cloud dependencies
 
 ---
 
@@ -304,21 +301,21 @@ To ensure smooth performance across different hardware vendors:
 
 Planned / possible extensions:
 
-* DTW-based scoring (optional)
-* Tutor recording mode
-* Visual exercise editor
-* Multi-user profiles
-* Multi-camera setups
+- DTW-based scoring (optional)
+- Tutor recording mode
+- Visual exercise editor
+- Multi-user profiles
+- Multi-camera setups
 
 ---
 
 ## 🧭 Design Philosophy
 
-* JSON as contracts
-* FSMs over heuristics
-* Graphs over linear scripts
-* Explicit rules over black-box AI
-* Offline-first always
+- JSON as contracts
+- FSMs over heuristics
+- Graphs over linear scripts
+- Explicit rules over black-box AI
+- Offline-first always
 
 ---
 
@@ -330,4 +327,4 @@ Expect iteration, refinement, and evolution of the exercise model.
 
 ---
 
-🪞 *Built as a research-driven, privacy-respecting alternative to cloud-dependent fitness platforms.*
+🪞 _Built as a research-driven, privacy-respecting alternative to cloud-dependent fitness platforms._

@@ -1,40 +1,42 @@
 /**
- * Índice de ejercicios disponibles en src/db/exercises/
- * 
- * Este archivo mantiene una lista de todos los ejercicios JSON disponibles
- * y facilita su importación en la aplicación.
- * 
- * Agregar nuevos ejercicios:
- * 1. Crear archivo JSON en src/db/exercises/XX_nombre.json
- * 2. Agregar el nombre del archivo a la lista EXERCISE_FILES
- * 3. El ejercicio será cargable automáticamente
+ * Index of available exercises in src/db/exercises/
+ *
+ * This file maintains a list of all available JSON exercises
+ * and facilitates their import in the application.
+ *
+ * Adding new exercises:
+ * 1. Create JSON file in src/db/exercises/XX_name.json
+ * 2. Add the file name to the EXERCISE_FILES list
+ * 3. The exercise will be automatically loadable
  */
 
 /**
- * Lista de archivos de ejercicios disponibles (sin extensión .json)
+ * List of available exercise files (without .json extension)
  */
 export const EXERCISE_FILES = [
-  '00_sample', // Sentadilla con elevación de brazos
-  // Agregar más ejercicios aquí
+  "00_sample", // Squat with arm raise
+  // Add more exercises here
   // '01_pushups',
   // '02_squats_advanced',
   // etc.
 ] as const;
 
 /**
- * Tipo que representa un nombre de archivo de ejercicio
+ * Type representing an exercise file name
  */
-export type ExerciseFileName = typeof EXERCISE_FILES[number];
+export type ExerciseFileName = (typeof EXERCISE_FILES)[number];
 
 /**
- * Verificar si un nombre de archivo es válido
+ * Check if a file name is valid
  */
-export function isValidExerciseFile(fileName: string): fileName is ExerciseFileName {
+export function isValidExerciseFile(
+  fileName: string,
+): fileName is ExerciseFileName {
   return EXERCISE_FILES.includes(fileName as ExerciseFileName);
 }
 
 /**
- * Obtener la lista completa de nombres de archivos disponibles
+ * Get the complete list of available file names
  */
 export function getAvailableExerciseFiles(): readonly string[] {
   return EXERCISE_FILES;

@@ -1,0 +1,96 @@
+.exercise-card {
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #222;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    h3 {
+      margin: 0;
+    }
+
+    .difficulty-badge {
+      font-size: 0.8em;
+      padding: 2px 6px;
+      border-radius: 4px;
+
+      &.beginner {
+        background-color: green;
+      }
+
+      &.intermediate {
+        background-color: orange;
+      }
+
+      &.advanced {
+        background-color: red;
+      }
+    }
+  }
+
+  .description {
+    margin: 0;
+    font-size: 0.9em;
+    color: #ccc;
+  }
+
+  .muscle-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    span {
+      font-size: 0.75em;
+      background-color: #333;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+  }
+
+  .actions {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #444;
+
+    .inputs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+
+      label {
+        font-size: 0.8em;
+
+        input {
+          width: 40px;
+          background: #333;
+          color: white;
+          border: none;
+          margin-left: 4px;
+        }
+      }
+    }
+
+    button {
+      width: 100%;
+      padding: 6px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+
+      &:hover {
+        background-color: #0056b3;
+      }
+    }
+  }
+}

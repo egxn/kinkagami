@@ -5,11 +5,18 @@ import usePoseContext from "../../context/usePoseContext";
 
 function Splash() {
   const navigate = useNavigate();
-  const { cameraError, cameraReady, modelError, modelLoading } = usePoseContext();
+  const { cameraError, cameraReady, modelError, modelLoading } =
+    usePoseContext();
 
   useEffect(() => {
-    logger.log("Splash", `Camera - Ready: ${cameraReady}, Error: ${cameraError}`);
-    logger.log("Splash", `Model -  Ready: ${!modelLoading}, Error: ${modelError}`);
+    logger.log(
+      "Splash",
+      `Camera - Ready: ${cameraReady}, Error: ${cameraError}`,
+    );
+    logger.log(
+      "Splash",
+      `Model -  Ready: ${!modelLoading}, Error: ${modelError}`,
+    );
 
     // Navigate to error if there are any errors
     if (cameraError || modelError) {
@@ -20,7 +27,10 @@ function Splash() {
 
     // Navigate to main once camera is ready (model can load in background)
     if (cameraReady && !modelLoading) {
-      logger.log("Splash", "Camera ready, navigating to /canvas (model loading in background)");
+      logger.log(
+        "Splash",
+        "Camera ready, navigating to /canvas (model loading in background)",
+      );
       navigate("/canvas");
     }
   }, [cameraReady, cameraError, modelError, navigate, modelLoading]);

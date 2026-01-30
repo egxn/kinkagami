@@ -1,0 +1,56 @@
+{
+  "button": {
+    "create": "Crear",
+    "cancel": "Cancelar",
+    "load": "Cargar",
+    "process": "Iniciar Procesamiento",
+    "processing": "Procesando...",
+    "download": "Descargar JSON",
+    "save": "Guardar en BD",
+    "saving": "Guardando...",
+    "add_step": "+ Añadir Paso",
+    "remove": "Eliminar"
+  },
+  "menu": {
+    "start": "INICIAR",
+    "settings": "AJUSTES",
+    "creator": "CREADOR",
+    "debug": "DEPURAR FSM",
+    "exit": "SALIR"
+  },
+  "create": {
+    "title": "Creador de Ejercicios",
+    "input_placeholder": "Introduce URL del video (mp4)",
+    "waiting_model": "Esperando modelo MoveNet...",
+    "overlay_processing": "Procesando... Fotograma: {{count}}",
+    "available_videos": "Videos Disponibles",
+    "loading_videos": "Cargando videos...",
+    "log": {
+      "loaded": "Video cargado: {{url}}",
+      "error_processing": "Error procesando fotograma: {{error}}",
+      "not_ready": "Video o Detector no listos",
+      "starting": "Iniciando procesamiento...",
+      "fallback": "El navegador no soporta requestVideoFrameCallback. Usando fallback (menos preciso).",
+      "error_playback": "Error iniciando reproducción: {{error}}",
+      "finished": "Procesamiento finalizado. Capturados {{count}} fotogramas válidos.",
+      "fill_form": "Por favor completa todos los campos antes de descargar.",
+      "downloaded": "JSON descargado.",
+      "saved": "Registro guardado en la base de datos."
+    },
+    "form": {
+      "title": "Detalles del Ejercicio",
+      "id": "ID Ejercicio (slug único)",
+      "name": "Nombre a Mostrar",
+      "description": "Descripción",
+      "difficulty": "Dificultad",
+      "muscle_groups": "Grupos Musculares (separados por coma)",
+      "instructions": "Instrucciones",
+      "step_placeholder": "Paso {{count}}"
+    },
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    }
+  }
+}

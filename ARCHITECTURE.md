@@ -6,11 +6,11 @@ This document describes the high-level architecture of the **Smart Fitness Mirro
 
 ## 1. System Goals
 
-* Run fully **offline**
-* Respect user **privacy** (no cloud by default)
-* Work on **limited hardware**
-* Allow **iterative exercise design**
-* Separate **logic, rendering, and data**
+- Run fully **offline**
+- Respect user **privacy** (no cloud by default)
+- Work on **limited hardware**
+- Allow **iterative exercise design**
+- Separate **logic, rendering, and data**
 
 ---
 
@@ -54,18 +54,18 @@ graph LR
 
 **Main Thread responsibilities:**
 
-* Canvas rendering
-* UI state
-* Camera capture
-* Network I/O
+- Canvas rendering
+- UI state
+- Camera capture
+- Network I/O
 
 **Worker responsibilities:**
 
-* Pose normalization
-* FSM execution
-* Graph traversal
-* Temporal constraint validation
-* Scoring
+- Pose normalization
+- FSM execution
+- Graph traversal
+- Temporal constraint validation
+- Scoring
 
 ---
 
@@ -87,9 +87,9 @@ graph TD
 
 Key characteristics:
 
-* Deterministic
-* Time-aware
-* Noise-tolerant
+- Deterministic
+- Time-aware
+- Noise-tolerant
 
 ---
 
@@ -110,10 +110,10 @@ graph TD
 
 Each exercise defines:
 
-* Moving points / angles
-* Expected min/max sequences
-* Parallel paths
-* Temporal constraints
+- Moving points / angles
+- Expected min/max sequences
+- Parallel paths
+- Temporal constraints
 
 JSON is the **source of truth**.
 
@@ -133,9 +133,9 @@ graph LR
 
 FSM state is enriched with:
 
-* Current graph nodes
-* Time windows
-* Partial completion
+- Current graph nodes
+- Time windows
+- Partial completion
 
 ---
 
@@ -164,9 +164,9 @@ The mirror has **no touchscreen**.
 
 Control is provided via:
 
-* QR code
-* Local web UI (mobile)
-* Optional gestures or hardware buttons
+- QR code
+- Local web UI (mobile)
+- Optional gestures or hardware buttons
 
 ```mermaid
 graph TD
@@ -196,10 +196,10 @@ graph TD
 
 Stored data includes:
 
-* Exercises
-* Tutor exercises
-* Execution runs
-* Metrics
+- Exercises
+- Tutor exercises
+- Execution runs
+- Metrics
 
 The database is **never exposed directly**.
 
@@ -207,22 +207,22 @@ The database is **never exposed directly**.
 
 ## 10. Design Principles Summary
 
-* JSON as contracts
-* FSMs over heuristics
-* Graphs for parallelism
-* Workers for performance
-* Canvas for efficiency
-* Local-first always
+- JSON as contracts
+- FSMs over heuristics
+- Graphs for parallelism
+- Workers for performance
+- Canvas for efficiency
+- Local-first always
 
 ---
 
 ## 11. Future Extensions
 
-* Optional DTW-based scoring
-* Tutor recording mode
-* Exercise editor UI
-* Multi-camera support
+- Optional DTW-based scoring
+- Tutor recording mode
+- Exercise editor UI
+- Multi-camera support
 
 ---
 
-🪞 *This architecture is designed to evolve without breaking core assumptions.*
+🪞 _This architecture is designed to evolve without breaking core assumptions._

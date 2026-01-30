@@ -7,6 +7,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 📊 Project Status Overview
 
 **Current State:**
+
 - ✅ Pose detection pipeline (MoveNet)
 - ✅ Camera streaming & canvas rendering
 - ✅ Basic UI routing structure
@@ -23,14 +24,15 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🎯 Phase 1: Foundation & Core Architecture (Weeks 1-2)
 
 ### 1.1 Exercise Definition System
-- [ ] **Define Exercise JSON Schema**
+
+- [] **Define Exercise JSON Schema**
   - Versioning system for exercises
   - Signal definitions (angles, body segments)
   - Event graph structure validation
   - Temporal constraints specification
   - Completion criteria
 
-- [ ] **Exercise Manager Service**
+- [] **Exercise Manager Service**
   - Load exercises from JSON files (`/src/db/exercises/*.json`)
   - Validate exercise definitions against schema
   - Migrate exercises to PouchDB
@@ -41,6 +43,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Include: squats, push-ups, arm raises, leg exercises
 
 ### 1.2 Angle Calculation Engine
+
 - [ ] **KeyPoint Utilities**
   - Extract specific keypoints from pose output
   - Confidence filtering
@@ -52,16 +55,12 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Cache calculations for performance
   - Unit tests for accuracy
 
-- [ ] **Normalization Pipeline**
-  - Align user pose to reference frame
-  - Scale invariance
-  - Mirror detection (left/right symmetry)
-
 ---
 
 ## 🧠 Phase 2: Validation Engine (Weeks 3-4)
 
 ### 2.1 Finite State Machine (FSM)
+
 - [ ] **FSM State Management**
   - Implement states: IDLE, IN_PROGRESS, FAILED, COMPLETED
   - State transition rules
@@ -75,6 +74,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Timeout handling
 
 ### 2.2 Event Graph Engine
+
 - [ ] **Graph Data Structure**
   - Node representation (ID, signal, range, hold_ms, emit flag)
   - Edge representation (from/to nodes)
@@ -92,6 +92,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Convergence detection
 
 ### 2.3 Temporal Constraints
+
 - [ ] **Constraint Evaluator**
   - Check time windows between nodes (min_ms, max_ms)
   - Severity handling (hard/soft constraints)
@@ -103,6 +104,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Adjust scoring based on timing
 
 ### 2.4 Exercise Validator
+
 - [ ] **High-level Validator**
   - Orchestrate FSM, graph, and temporal logic
   - Return completion status
@@ -114,6 +116,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🎨 Phase 3: Visualization & Rendering (Weeks 5-6)
 
 ### 3.1 Ghost Pose System
+
 - [ ] **Ghost Model**
   - Store reference/ideal pose from exercise
   - Render ghost skeleton on canvas
@@ -125,6 +128,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Blend between poses for smooth transitions
 
 ### 3.2 Comparison Visualization
+
 - [ ] **Angle Visualization**
   - Overlay current vs target angles
   - Color code progress (red/yellow/green)
@@ -141,6 +145,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Compensation suggestions
 
 ### 3.3 Real-time Canvas Updates
+
 - [ ] **Optimize Drawing Performance**
   - Batch render operations
   - Only redraw changed elements
@@ -159,19 +164,24 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 📱 Phase 4: User Interface (Weeks 7-8)
 
 ### 4.1 Menu System
-- [ ] **Exercise Selection**
+
+- [x] **Exercise Selection**
   - List all available exercises
-  - Display difficulty, muscle groups, instructions
-  - Filter and search
-  - Pagination for large lists
+  - Filter by difficulty, muscle groups, search
+  - Each card should have title, description, difficulty, muscle groups, instructions
+  - Each card should have an add button to routine and number of times to do it
+  - infinite scroll for large lists
+  - The routine should be a side panel that can be opened / hidden from the menu
+  - The routine should have a delete button to remove exercises from it
+  - The cards in the routine can be dragged to change their order
+  - The routine should be saved in the local storage and can be loaded from it
 
 - [ ] **Exercise Launch**
   - Confirm selection
-  - Display instructions
-  - Show warm-up recommendation
   - Start button
 
 ### 4.2 Canvas View Enhancements
+
 - [ ] **Controls Overlay**
   - Pause/Resume button
   - Settings access
@@ -186,6 +196,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Performance metrics
 
 ### 4.3 Pause Screen
+
 - [ ] **Functionality**
   - Resume exercise
   - Restart exercise
@@ -198,6 +209,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Touch-friendly sizes
 
 ### 4.4 Score Screen
+
 - [ ] **Performance Summary**
   - Total reps completed
   - Total sets completed
@@ -211,6 +223,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Improvement areas
 
 ### 4.5 Summary Screen
+
 - [ ] **Session Summary**
   - Date/time
   - Exercise name
@@ -224,6 +237,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Compare to previous sessions
 
 ### 4.6 Settings Screen
+
 - [ ] **User Preferences**
   - Difficulty level
   - Feedback verbosity
@@ -245,6 +259,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 💾 Phase 5: Local Storage & Data Management (Weeks 9-10)
 
 ### 5.1 Session Persistence
+
 - [ ] **Session Model**
   - Create session documents in PouchDB
   - Track: exercise_id, date, reps, sets, score, duration
@@ -256,6 +271,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Error handling and retry logic
 
 ### 5.2 Exercise History
+
 - [ ] **History Queries**
   - Get sessions for a specific exercise
   - Get all sessions (date range)
@@ -267,6 +283,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Progress tracking (improvements over time)
 
 ### 5.3 Data Export
+
 - [ ] **Export Functionality**
   - Export to CSV
   - Export to JSON
@@ -282,6 +299,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🔧 Phase 6: Performance & Optimization (Weeks 11-12)
 
 ### 6.1 Web Worker Integration
+
 - [ ] **Move Heavy Processing to Workers**
   - Angle calculations
   - FSM/graph evaluation
@@ -294,6 +312,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Performance benchmarking
 
 ### 6.2 Hardware Abstraction
+
 - [ ] **Backend Selection Strategy**
   - Detect available backends (WebGL, WASM, WebGPU)
   - Fallback chain: WebGL → WASM
@@ -305,6 +324,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Frame rate adaptation
 
 ### 6.3 Rendering Optimization
+
 - [ ] **Canvas Performance**
   - Measure frame times
   - Profile drawing calls
@@ -321,12 +341,14 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🎮 Phase 7: Advanced Features (Weeks 13-14)
 
 ### 7.1 DTW-Based Scoring (Optional)
+
 - [ ] **Dynamic Time Warping Implementation**
   - Compare user trajectory to reference
   - Provide similarity score
   - Handle varying speeds
 
 ### 7.2 Tutor Recording Mode
+
 - [ ] **Exercise Definition Creation UI**
   - Record reference pose phases
   - Define angles and ranges interactively
@@ -338,6 +360,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Export exercises
 
 ### 7.3 Multi-User Profiles
+
 - [ ] **User Management**
   - Create/switch profiles
   - Store user preferences
@@ -348,6 +371,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
   - Show progress over time
 
 ### 7.4 Advanced Visualization
+
 - [ ] **3D Pose Visualization (Optional)**
   - Consider Three.js for depth visualization
   - Side-by-side user/ghost comparison
@@ -361,6 +385,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🧪 Phase 8: Testing & QA (Weeks 15-16)
 
 ### 8.1 Unit Tests
+
 - [ ] Angle calculation accuracy
 - [ ] FSM state transitions
 - [ ] Graph evaluation logic
@@ -368,24 +393,28 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 - [ ] Date/time calculations
 
 ### 8.2 Integration Tests
+
 - [ ] Full exercise validation pipeline
 - [ ] Canvas rendering with multiple elements
 - [ ] PouchDB operations
 - [ ] State persistence
 
 ### 8.3 E2E Tests
+
 - [ ] Complete exercise execution
 - [ ] Score calculation accuracy
 - [ ] Session history tracking
 - [ ] UI navigation flows
 
 ### 8.4 Performance Benchmarks
+
 - [ ] Pose detection latency
 - [ ] Validation logic speed
 - [ ] Canvas rendering FPS
 - [ ] Memory usage profiling
 
 ### 8.5 Hardware Testing
+
 - [ ] Test on Radxa SBC (target hardware)
 - [ ] Test on various Chromium versions
 - [ ] Test camera compatibility
@@ -396,24 +425,28 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 📦 Phase 9: Documentation & Deployment (Weeks 17-18)
 
 ### 9.1 Technical Documentation
+
 - [ ] **ARCHITECTURE.md** - Complete architecture diagrams
 - [ ] **API Contracts** - Exercise definition schema
 - [ ] **Component Documentation** - Each major module
 - [ ] **Data Structures** - FSM, graphs, constraints
 
 ### 9.2 User Documentation
+
 - [ ] **User Guide** - How to use the mirror
 - [ ] **Exercise Library** - Available exercises
 - [ ] **Troubleshooting** - Common issues
 - [ ] **FAQ** - Frequent questions
 
 ### 9.3 Developer Documentation
+
 - [ ] **Setup Guide** - Dev environment
 - [ ] **Contributing Guidelines** - For contributors
 - [ ] **Building Custom Exercises** - Tutor workflow
 - [ ] **Debugging Tips** - Performance profiling
 
 ### 9.4 Deployment
+
 - [ ] **Build Process**
   - Optimize build for embedded
   - Reduce bundle size
@@ -429,6 +462,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 🎯 Priority Matrix
 
 ### 🔴 Critical (Must Have)
+
 1. Angle calculation accuracy
 2. FSM-based validation
 3. Event graph engine
@@ -438,6 +472,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 7. History persistence
 
 ### 🟡 Important (Should Have)
+
 1. Ghost pose comparison
 2. Detailed feedback visualization
 3. Score calculation
@@ -446,6 +481,7 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 6. Web Worker integration
 
 ### 🟢 Nice-to-Have (Could Have)
+
 1. DTW scoring
 2. Tutor mode
 3. Multi-user profiles
@@ -457,17 +493,20 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 ## 📌 Key Metrics & KPIs
 
 ### Performance
+
 - **Pose Detection Latency**: < 100ms per frame
 - **Validation Logic**: < 50ms per update
 - **Canvas Rendering**: 30-60 FPS sustained
 - **Memory Usage**: < 200MB on SBC
 
 ### Accuracy
+
 - **Angle Calculation Error**: < 5 degrees
 - **Joint Detection**: > 90% confidence threshold
 - **Exercise Completion**: Deterministic (no heuristics)
 
 ### User Experience
+
 - **Time to Start Exercise**: < 5 seconds
 - **Feedback Latency**: < 200ms from pose change
 - **Session Save Time**: < 2 seconds
@@ -486,16 +525,16 @@ Strategic plan to achieve the goals outlined in the README.md. This roadmap is o
 
 ## 🔄 Version Milestones
 
-| Version | Focus | Timeline |
-|---------|-------|----------|
-| 0.1.0   | Pose + FSM validation | Week 4 |
-| 0.2.0   | Canvas + Ghost poses | Week 6 |
-| 0.3.0   | Complete UI | Week 8 |
-| 0.4.0   | Data persistence | Week 10 |
-| 0.5.0   | Performance optimization | Week 12 |
-| 0.6.0   | Advanced features | Week 14 |
-| 0.7.0   | Testing & polish | Week 16 |
-| 1.0.0   | Production ready | Week 18 |
+| Version | Focus                    | Timeline |
+| ------- | ------------------------ | -------- |
+| 0.1.0   | Pose + FSM validation    | Week 4   |
+| 0.2.0   | Canvas + Ghost poses     | Week 6   |
+| 0.3.0   | Complete UI              | Week 8   |
+| 0.4.0   | Data persistence         | Week 10  |
+| 0.5.0   | Performance optimization | Week 12  |
+| 0.6.0   | Advanced features        | Week 14  |
+| 0.7.0   | Testing & polish         | Week 16  |
+| 1.0.0   | Production ready         | Week 18  |
 
 ---
 
@@ -505,5 +544,5 @@ Each phase includes specific tasks. Start with **Phase 1** and move sequentially
 
 ---
 
-*Last Updated: January 28, 2026*
-*Maintained by: Development Team*
+_Last Updated: January 28, 2026_
+_Maintained by: Development Team_

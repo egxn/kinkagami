@@ -9,12 +9,16 @@ export default function Error() {
       <p>Something went wrong during initialization</p>
       {cameraError && (
         <div>
-          <p><strong>Camera Error:</strong> {cameraError}</p>
+          <p>
+            <strong>Camera Error:</strong> {cameraError}
+          </p>
         </div>
       )}
       {modelError && (
         <div>
-          <p><strong>Model Error:</strong> {modelError}</p>
+          <p>
+            <strong>Model Error:</strong> {modelError}
+          </p>
         </div>
       )}
     </div>

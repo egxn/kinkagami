@@ -11,12 +11,21 @@ interface PoseProviderProps {
   videoRef?: React.RefObject<HTMLVideoElement | null>;
 }
 
-export const PoseProvider = ({ children, videoRef: externalVideoRef }: PoseProviderProps) => {
+export const PoseProvider = ({
+  children,
+  videoRef: externalVideoRef,
+}: PoseProviderProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
   const onStreamReadyRef = useRef<(() => void) | null>(null);
-  
-  const { stream, error: cameraError, isReady: cameraReady, onStreamReady, streamReady } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
+
+  const {
+    stream,
+    error: cameraError,
+    isReady: cameraReady,
+    onStreamReady,
+    streamReady,
+  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
   const { detector, isLoading: modelLoading, error: modelError } = useMovenet();
 
   // Update the ref when onStreamReady changes
@@ -36,7 +45,16 @@ export const PoseProvider = ({ children, videoRef: externalVideoRef }: PoseProvi
       onStreamReady: onStreamReadyRef.current,
       streamReady,
     }),
-    [videoRef, stream, detector, cameraError, cameraReady, modelLoading, modelError, streamReady],
+    [
+      videoRef,
+      stream,
+      detector,
+      cameraError,
+      cameraReady,
+      modelLoading,
+      modelError,
+      streamReady,
+    ],
   );
 
   return <PoseContext.Provider value={value}>{children}</PoseContext.Provider>;

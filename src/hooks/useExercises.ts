@@ -1,26 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Exercise } from '../db/dbService';
-import { getAllExercises, addExercise, updateExercise, deleteExercise } from '../db/dbService';
+import { useState, useEffect, useCallback } from "react";
+import type { Exercise } from "../db/dbService";
+import {
+  getAllExercises,
+  addExercise,
+  updateExercise,
+  deleteExercise,
+} from "../db/dbService";
 
 export interface UseExercisesResult {
   exercises: Exercise[];
   loading: boolean;
   error: Error | null;
-  addNewExercise: (exercise: Omit<Exercise, '_id' | '_rev' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addNewExercise: (
+    exercise: Omit<Exercise, "_id" | "_rev" | "createdAt" | "updatedAt">,
+  ) => Promise<void>;
   updateExerciseData: (id: string, updates: Partial<Exercise>) => Promise<void>;
   deleteExerciseData: (id: string) => Promise<void>;
   refreshExercises: () => Promise<void>;
 }
 
 /**
- * Hook para gestionar ejercicios desde la base de datos PouchDB
+ * Hook for managing exercises from PouchDB database
  */
 export function useExercises(): UseExercisesResult {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Obtener todos los ejercicios
+  // Get all exercises
   const refreshExercises = useCallback(async () => {
     try {
       setLoading(true);
@@ -28,34 +35,36 @@ export function useExercises(): UseExercisesResult {
       const data = await getAllExercises();
       setExercises(data);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+      setError(err instanceof Error ? err : new Error("Unknown error"));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Cargar ejercicios al montar el componente
+  // Load exercises on component mount
   useEffect(() => {
     refreshExercises();
   }, [refreshExercises]);
 
-  // Agregar nuevo ejercicio
+  // Add new exercise
   const addNewExercise = useCallback(
-    async (exercise: Omit<Exercise, '_id' | '_rev' | 'createdAt' | 'updatedAt'>) => {
+    async (
+      exercise: Omit<Exercise, "_id" | "_rev" | "createdAt" | "updatedAt">,
+    ) => {
       try {
         setError(null);
         await addExercise(exercise);
         await refreshExercises();
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error');
+        const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         throw error;
       }
     },
-    [refreshExercises]
+    [refreshExercises],
   );
 
-  // Actualizar ejercicio
+  // Update exercise
   const updateExerciseData = useCallback(
     async (id: string, updates: Partial<Exercise>) => {
       try {
@@ -63,15 +72,15 @@ export function useExercises(): UseExercisesResult {
         await updateExercise(id, updates);
         await refreshExercises();
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error');
+        const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         throw error;
       }
     },
-    [refreshExercises]
+    [refreshExercises],
   );
 
-  // Eliminar ejercicio
+  // Delete exercise
   const deleteExerciseData = useCallback(
     async (id: string) => {
       try {
@@ -79,12 +88,12 @@ export function useExercises(): UseExercisesResult {
         await deleteExercise(id);
         await refreshExercises();
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error');
+        const error = err instanceof Error ? err : new Error("Unknown error");
         setError(error);
         throw error;
       }
     },
-    [refreshExercises]
+    [refreshExercises],
   );
 
   return {

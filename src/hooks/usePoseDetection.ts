@@ -1,6 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react';
-import * as poseDetection from '@tensorflow-models/pose-detection';
-import { logger } from '../utils/logger';
+import { useRef, useEffect, useCallback } from "react";
+import * as poseDetection from "@tensorflow-models/pose-detection";
+import { logger } from "../utils/logger";
 
 interface UsePoseDetectionProps {
   detector: poseDetection.PoseDetector | null;
@@ -21,7 +21,9 @@ export const usePoseDetection = ({
   streamReady,
   onPosesDetected,
 }: UsePoseDetectionProps) => {
-  const detectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDetectingRef = useRef(false);
   const detectionStartedRef = useRef(false);
@@ -38,22 +40,25 @@ export const usePoseDetection = ({
   }, []);
 
   // Perform pose estimation
-  const estimatePoses = useCallback(async (video: HTMLVideoElement) => {
-    if (!detector || video.videoWidth === 0 || video.videoHeight === 0) {
-      return [];
-    }
+  const estimatePoses = useCallback(
+    async (video: HTMLVideoElement) => {
+      if (!detector || video.videoWidth === 0 || video.videoHeight === 0) {
+        return [];
+      }
 
-    try {
-      return await detector.estimatePoses(video);
-    } catch (err) {
-      logger.error('usePoseDetection', 'Error during pose estimation:', err);
-      return [];
-    }
-  }, [detector]);
+      try {
+        return await detector.estimatePoses(video);
+      } catch (err) {
+        logger.error("usePoseDetection", "Error during pose estimation:", err);
+        return [];
+      }
+    },
+    [detector],
+  );
 
   // Detection loop
   const startDetectionLoop = useCallback(() => {
-    logger.log('usePoseDetection', 'Starting pose detection loop...');
+    logger.log("usePoseDetection", "Starting pose detection loop...");
     let frameCount = 0;
     let retryCount = 0;
 
@@ -64,21 +69,30 @@ export const usePoseDetection = ({
       try {
         frameCount++;
         const video = videoRef.current;
-        
+
         if (!video) {
-          logger.log('usePoseDetection', `Frame ${frameCount}: Video ref not available`);
+          logger.log(
+            "usePoseDetection",
+            `Frame ${frameCount}: Video ref not available`,
+          );
           return;
         }
 
         if (video.videoWidth === 0 || video.videoHeight === 0) {
-          logger.log('usePoseDetection', `Frame ${frameCount}: Video not ready for inference`);
+          logger.log(
+            "usePoseDetection",
+            `Frame ${frameCount}: Video not ready for inference`,
+          );
           return;
         }
 
         const poses = await estimatePoses(video);
 
         if (poses.length > 0) {
-          logger.log('usePoseDetection', `Frame ${frameCount}: Detected ${poses.length} pose(s)`);
+          logger.log(
+            "usePoseDetection",
+            `Frame ${frameCount}: Detected ${poses.length} pose(s)`,
+          );
           onPosesDetected(poses);
           retryCount = 0; // Reset retry count on success
         }
@@ -96,7 +110,10 @@ export const usePoseDetection = ({
       retryTimeoutRef.current = setTimeout(() => {
         if (frameCount === 0 && retryCount < MAX_RETRIES) {
           retryCount++;
-          logger.log('usePoseDetection', `Retry ${retryCount}/${MAX_RETRIES}: Restarting detection...`);
+          logger.log(
+            "usePoseDetection",
+            `Retry ${retryCount}/${MAX_RETRIES}: Restarting detection...`,
+          );
 
           // Clear detection loop
           if (detectionTimeoutRef.current) {
@@ -109,7 +126,10 @@ export const usePoseDetection = ({
           detectLoop();
           setupRetry();
         } else if (retryCount >= MAX_RETRIES) {
-          logger.error('usePoseDetection', 'Max retries reached for pose detection');
+          logger.error(
+            "usePoseDetection",
+            "Max retries reached for pose detection",
+          );
         }
       }, RETRY_DELAY);
     };
@@ -119,13 +139,20 @@ export const usePoseDetection = ({
 
   // Main detection effect
   useEffect(() => {
-    logger.log('usePoseDetection', 'Pose detection effect triggered');
+    logger.log("usePoseDetection", "Pose detection effect triggered");
 
     detectionStartedRef.current = true;
     startDetectionLoop();
 
     return cleanup;
-  }, [detector, modelLoading, streamReady, videoRef, startDetectionLoop, cleanup]);
+  }, [
+    detector,
+    modelLoading,
+    streamReady,
+    videoRef,
+    startDetectionLoop,
+    cleanup,
+  ]);
 
   return { cleanup };
 };

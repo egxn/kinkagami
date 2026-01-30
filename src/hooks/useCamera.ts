@@ -1,7 +1,9 @@
-import { useRef, useEffect, useState } from 'react';
-import { logger } from '../utils/logger';
+import { useRef, useEffect, useState } from "react";
+import { logger } from "../utils/logger";
 
-export const useCamera = (externalVideoRef?: React.RefObject<HTMLVideoElement>) => {
+export const useCamera = (
+  externalVideoRef?: React.RefObject<HTMLVideoElement>,
+) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
   const [isReady, setIsReady] = useState(false);
@@ -16,32 +18,39 @@ export const useCamera = (externalVideoRef?: React.RefObject<HTMLVideoElement>) 
 
     const init = async () => {
       try {
-        logger.log('useCamera', 'Requesting camera access...');
+        logger.log("useCamera", "Requesting camera access...");
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: 'user'
-          }
+            facingMode: "user",
+          },
         });
 
         if (!mounted) {
-          stream.getTracks().forEach(t => t.stop());
+          stream.getTracks().forEach((t) => t.stop());
           return;
         }
 
         streamRef.current = stream;
         setIsReady(true);
         setStreamReady(true);
-        logger.log('useCamera', 'Camera stream obtained successfully');
-        
+        logger.log("useCamera", "Camera stream obtained successfully");
+
         // Set callback to be called when stream is ready
         setOnStreamReady(() => () => {
-          logger.log('useCamera', 'Stream ready callback triggered');
+          logger.log("useCamera", "Stream ready callback triggered");
         });
       } catch (error) {
-        setError('Camera access failed: ' + (error instanceof Error ? error.message : String(error)));
-        logger.log('useCamera', 'Camera access failed: ' + (error instanceof Error ? error.message : String(error)));
+        setError(
+          "Camera access failed: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
+        logger.log(
+          "useCamera",
+          "Camera access failed: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
       }
     };
 
@@ -49,7 +58,7 @@ export const useCamera = (externalVideoRef?: React.RefObject<HTMLVideoElement>) 
 
     return () => {
       mounted = false;
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
@@ -60,5 +69,5 @@ export const useCamera = (externalVideoRef?: React.RefObject<HTMLVideoElement>) 
     error,
     onStreamReady,
     streamReady,
-  }
+  };
 };

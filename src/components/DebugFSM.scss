@@ -1,0 +1,36 @@
+.debug-fsm {
+  background: #222;
+  padding: 20px;
+  min-height: 100vh;
+  overflow: auto;
+
+  h2 {
+    color: white;
+    border-bottom: 1px solid white;
+    margin-bottom: 16px;
+  }
+
+  canvas {
+    border: 1px solid #444;
+    background: #111;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .legend {
+    color: #aaa;
+    margin-top: 10px;
+
+    p {
+      margin: 0 0 8px 0;
+    }
+
+    pre {
+      font-size: 0.8em;
+      background: #111;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  }
+}

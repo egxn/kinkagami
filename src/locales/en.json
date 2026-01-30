@@ -1,0 +1,56 @@
+{
+  "button": {
+    "create": "Create",
+    "cancel": "Cancel",
+    "load": "Load",
+    "process": "Start Processing",
+    "processing": "Processing...",
+    "download": "Download JSON",
+    "save": "Save to DB",
+    "saving": "Saving...",
+    "add_step": "+ Add Step",
+    "remove": "Remove"
+  },
+  "menu": {
+    "start": "START",
+    "settings": "SETTINGS",
+    "creator": "CREATOR",
+    "debug": "DEBUG FSM",
+    "exit": "EXIT"
+  },
+  "create": {
+    "title": "Exercise Creator",
+    "input_placeholder": "Enter Video URL (mp4)",
+    "waiting_model": "Waiting for MoveNet model...",
+    "overlay_processing": "Processing... Frame: {{count}}",
+    "available_videos": "Available Videos",
+    "loading_videos": "Loading videos...",
+    "log": {
+      "loaded": "Loaded video: {{url}}",
+      "error_processing": "Error processing frame: {{error}}",
+      "not_ready": "Video or Detector not ready",
+      "starting": "Starting processing...",
+      "fallback": "Browser doesn't support requestVideoFrameCallback. Using fallback (less accurate).",
+      "error_playback": "Error starting playback: {{error}}",
+      "finished": "Processing finished. Captured {{count}} valid frames.",
+      "fill_form": "Please fill all form fields before downloading.",
+      "downloaded": "JSON downloaded.",
+      "saved": "Record saved to database."
+    },
+    "form": {
+      "title": "Exercise Details",
+      "id": "Exercise ID (unique slug)",
+      "name": "Display Name",
+      "description": "Description",
+      "difficulty": "Difficulty",
+      "muscle_groups": "Muscle Groups (comma separated)",
+      "instructions": "Instructions",
+      "step_placeholder": "Step {{count}}"
+    },
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
+  }
+}

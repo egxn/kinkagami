@@ -31,10 +31,11 @@ Copilot should assume:
 - **Client-side / local-first**
 - No external servers required
 - Exercises are defined as **versioned JSON schemas**
-- JSON is the *source of truth*
+- JSON is the _source of truth_
 - Databases are used only for runtime queries and persistence
 
 Avoid:
+
 - Heavy abstractions
 - Over-engineered patterns
 - Unnecessary frameworks
@@ -52,6 +53,7 @@ Avoid:
   - Simple overlays
 
 Avoid:
+
 - Full 3D avatars unless explicitly requested
 - GPU-heavy solutions
 
@@ -62,6 +64,7 @@ Avoid:
 The target hardware is a **Radxa SBC**.
 
 Therefore:
+
 - Prefer lightweight algorithms
 - Avoid multiple ML models running in parallel
 - Use **Web Workers** whenever possible for:
@@ -95,6 +98,7 @@ The main thread should stay responsive and focused on UI.
 - Access data through a local API layer
 
 Exercise definitions:
+
 - Live in JSON files
 - Are versioned
 - Can be migrated into the local DB
@@ -121,6 +125,7 @@ Exercise definitions:
 - Comments are welcome when logic is non-trivial
 
 When in doubt:
+
 > choose clarity and robustness over abstraction.
 
 ---

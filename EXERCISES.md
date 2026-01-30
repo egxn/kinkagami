@@ -5,6 +5,7 @@
 Exercises in the Smart Fitness Mirror are defined as **versioned JSON files** stored in `src/db/exercises/`.
 
 These JSON files serve as the **source of truth** for exercise behavior and are used to:
+
 - Define muscle groups and difficulty
 - Specify joint angles to track
 - Create validation rules via FSM and graphs
@@ -16,6 +17,7 @@ These JSON files serve as the **source of truth** for exercise behavior and are 
 ## File Location
 
 All exercise definitions are stored in:
+
 ```
 src/db/exercises/
 ├── index.ts              # Exercise registry
@@ -31,16 +33,18 @@ src/db/exercises/
 ## Loading Strategy
 
 ### Import at Runtime
+
 Exercises are loaded into PouchDB during application initialization:
 
 ```typescript
-import { importExercisesFromJSON, EXERCISE_FILES } from '@/db/exercises';
+import { importExercisesFromJSON, EXERCISE_FILES } from "@/db/exercises";
 
 // Load all available exercises into PouchDB
 await importExercisesFromJSON(EXERCISE_FILES);
 ```
 
 ### Why This Approach?
+
 - ✅ Exercises are versioned and tracked
 - ✅ Local-first: stored in PouchDB
 - ✅ Can be added/updated without rebuilding
@@ -52,6 +56,7 @@ await importExercisesFromJSON(EXERCISE_FILES);
 ## Exercise JSON Schema
 
 ### Structure
+
 ```json
 {
   "exercise_id": "unique_identifier",
@@ -61,7 +66,7 @@ await importExercisesFromJSON(EXERCISE_FILES);
   "muscle_groups": ["quads", "glutes", "hamstrings"],
   "difficulty": "beginner|intermediate|advanced",
   "instructions": ["Step 1", "Step 2", ...],
-  
+
   "signals": {
     "knee_angle": {
       "type": "angle",
@@ -69,14 +74,14 @@ await importExercisesFromJSON(EXERCISE_FILES);
     },
     ...
   },
-  
+
   "event_graph": {
     "nodes": [...],
     "edges": [...]
   },
-  
+
   "time_constraints": [...],
-  
+
   "completion": {
     "terminal_nodes": [...]
   }
@@ -86,25 +91,33 @@ await importExercisesFromJSON(EXERCISE_FILES);
 ### Key Fields
 
 #### `exercise_id` (string, required)
+
 Unique identifier for the exercise. Examples:
+
 - `squat_with_arm_raise`
 - `pushup_standard`
 - `bicep_curl_dumbbell`
 
 #### `version` (string, recommended)
+
 Semantic versioning for exercise definitions. Allows tracking changes:
+
 - `1.0` - Initial version
 - `1.1` - Adjusted angle ranges
 - `2.0` - Completely redesigned
 
 #### `name` (string, required)
+
 Display name in Spanish (or your language). Used in UI.
 
 #### `description` (string)
+
 Detailed description of the exercise, what muscles it targets, etc.
 
 #### `muscle_groups` (array)
+
 List of targeted muscle groups:
+
 ```json
 [
   "cuádriceps",
@@ -120,12 +133,15 @@ List of targeted muscle groups:
 ```
 
 #### `difficulty` (string)
+
 - `principiante` - Beginner
 - `intermedio` - Intermediate
 - `avanzado` - Advanced
 
 #### `instructions` (array)
+
 Step-by-step instructions for performing the exercise:
+
 ```json
 [
   "Párate con los pies al ancho de los hombros",
@@ -137,6 +153,7 @@ Step-by-step instructions for performing the exercise:
 ```
 
 #### `signals` (object)
+
 Define which body angles/segments to track:
 
 ```json
@@ -157,11 +174,13 @@ Define which body angles/segments to track:
 ```
 
 **Supported Signal Types:**
+
 - `angle` - Angle between 3 keypoints (joint angle)
 - `distance` - Distance between 2 points (future)
 - `velocity` - Rate of movement (future)
 
 **Available Keypoints** (from MoveNet):
+
 ```
 0: nose
 1: left_eye
@@ -183,6 +202,7 @@ Define which body angles/segments to track:
 ```
 
 #### `event_graph` (object)
+
 Finite state machine definition using directed graph:
 
 ```json
@@ -211,6 +231,7 @@ Finite state machine definition using directed graph:
 ```
 
 **Node Types:**
+
 - **Signal Node**: `{ "id", "signal", "range", "hold_ms", "emit" }`
   - `signal`: Which signal to monitor
   - `range`: [min, max] angle in degrees
@@ -222,10 +243,12 @@ Finite state machine definition using directed graph:
   - Ensures parallel movements are coordinated
 
 **Edges:**
+
 - Directed edges define valid transitions
 - From → To: When a node fires, which node(s) become active?
 
 #### `time_constraints` (array)
+
 Temporal relationships between nodes:
 
 ```json
@@ -243,11 +266,12 @@ Temporal relationships between nodes:
 
 - `min_ms`: Minimum time between from → to
 - `max_ms`: Maximum time between from → to
-- `severity`: 
+- `severity`:
   - `hard` - Disqualifies the rep if violated
   - `soft` - Penalizes the score but allows completion
 
 #### `completion` (object)
+
 Defines successful exercise completion:
 
 ```json
@@ -267,6 +291,7 @@ Defines successful exercise completion:
 See [00_sample.json](./00_sample.json) for a complete example.
 
 Key features of this exercise:
+
 1. **Parallel movements**: Knees and hips flex simultaneously
 2. **Sequential movements**: Arms raise after reaching bottom
 3. **Temporal constraints**: Arms must rise within 200ms of bottom
@@ -277,7 +302,9 @@ Key features of this exercise:
 ## Adding a New Exercise
 
 ### Step 1: Create JSON File
+
 Create a new file in `src/db/exercises/`:
+
 ```
 src/db/exercises/01_my_exercise.json
 ```
@@ -285,21 +312,26 @@ src/db/exercises/01_my_exercise.json
 Follow the naming convention: `XX_exercise_name.json`
 
 ### Step 2: Define the Exercise
+
 Fill in all required fields. Use 00_sample.json as a template.
 
 ### Step 3: Register in Index
+
 Update `src/db/exercises/index.ts`:
+
 ```typescript
 export const EXERCISE_FILES = [
-  '00_sample',
-  '01_my_exercise',  // Add here
+  "00_sample",
+  "01_my_exercise", // Add here
 ] as const;
 ```
 
 ### Step 4: Load at Runtime
+
 The exercise will automatically be loaded when `importExercisesFromJSON()` is called.
 
 ### Step 5: Test
+
 - Create sample pose data
 - Run through validation engine
 - Check FSM transitions
@@ -310,29 +342,34 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 ## Validation Rules
 
 ### File Naming
+
 - Format: `XX_exercise_name.json`
 - `XX` is zero-padded order (00, 01, 02, ...)
 - Use snake_case
 - Keep names short and descriptive
 
 ### Exercise ID
+
 - Must be unique across all exercises
 - Use snake_case: `squat_with_arm_raise`
-- Should match file name (without 'XX_')
+- Should match file name (without 'XX\_')
 
 ### Signals
+
 - Each signal must reference valid keypoints
 - Angle signals require exactly 3 points
 - Range values in degrees (0-180)
 - `hold_ms` > 0 to debounce jitter
 
 ### Event Graph
+
 - At least one named node
 - Edges must reference existing nodes
 - Sync nodes cannot have incoming signal edges
 - Terminal nodes must be reachable
 
 ### Constraints
+
 - `min_ms` ≤ `max_ms`
 - Both must be ≥ 0
 
@@ -343,15 +380,18 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 ### When to Increment Version
 
 **Patch (1.0.1 → 1.0.2):**
+
 - Tiny adjustments to angle ranges
 - Minor hold_ms tweaks
 
 **Minor (1.0 → 1.1):**
+
 - Add new optional signals
 - Relax constraints
 - Add/modify terminal nodes
 
 **Major (1.0 → 2.0):**
+
 - Change fundamental structure
 - Redefine muscle groups
 - Change FSM flow
@@ -361,12 +401,14 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 ## Performance Considerations
 
 ### Optimization Tips
+
 1. **Minimize held_ms**: Shorter holds = faster feedback (but more noisy)
 2. **Widen angle ranges**: Tolerance improves completion rate
 3. **Parallel paths**: Reduce sequential dependencies
 4. **Sync nodes**: Use sparingly (can slow FSM evaluation)
 
 ### Typical Numbers
+
 - `hold_ms`: 100-200 (debounce window)
 - `range` width: 20-40 degrees
 - `min_ms`: 50-100
@@ -377,6 +419,7 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 ## Testing
 
 ### Manual Testing
+
 1. Load exercise from DB
 2. Create mock pose data
 3. Feed through validator
@@ -384,6 +427,7 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 5. Verify terminal node reached
 
 ### Test Checklist
+
 - [ ] All signals calculate without errors
 - [ ] Angle ranges are reasonable
 - [ ] FSM progresses naturally
@@ -396,6 +440,7 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 ## Future Features
 
 ### Planned Enhancements
+
 - [ ] Exercise categories (cardio, strength, flexibility)
 - [ ] Intensity levels (easy, normal, hard)
 - [ ] Rest period definitions
@@ -404,6 +449,7 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 - [ ] Custom scoring weights
 
 ### Under Consideration
+
 - [ ] Multi-sided exercise (front/side/back views)
 - [ ] Dynamic range adjustment
 - [ ] AI-assisted exercise generation
@@ -421,4 +467,4 @@ The exercise will automatically be loaded when `importExercisesFromJSON()` is ca
 
 ---
 
-*Last Updated: January 28, 2026*
+_Last Updated: January 28, 2026_
