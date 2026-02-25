@@ -1,96 +1,117 @@
-.exercise-card {
-  border: 1px solid #444;
-  border-radius: 8px;
-  padding: 16px;
-  background-color: #222;
+.exercise-card__title {
+  margin: 0 0 6px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exercise-card__description {
+  margin: 0 0 8px 0;
+  font-size: 0.85rem;
+  color: #aaa;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.exercise-card__meta {
   display: flex;
-  flex-direction: column;
   gap: 8px;
+  margin-bottom: 8px;
+}
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+.exercise-card__difficulty {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
 
-    h3 {
-      margin: 0;
-    }
+.exercise-card__difficulty--beginner {
+  background: #2e7d32;
+  color: #c8e6c9;
+}
 
-    .difficulty-badge {
-      font-size: 0.8em;
-      padding: 2px 6px;
-      border-radius: 4px;
+.exercise-card__difficulty--intermedio {
+  background: #f57c00;
+  color: #ffe0b2;
+}
 
-      &.beginner {
-        background-color: green;
-      }
+.exercise-card__difficulty--advanced {
+  background: #c62828;
+  color: #ffcdd2;
+}
 
-      &.intermediate {
-        background-color: orange;
-      }
+.exercise-card__duration,
+.exercise-card__reps {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
 
-      &.advanced {
-        background-color: red;
-      }
-    }
+.exercise-card__muscles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.exercise-card__muscle-tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(100, 100, 255, 0.2);
+  color: #9fa8da;
+}
+
+.exercise-card__reps-control {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.exercise-card__reps-label {
+  color: #ddd;
+  font-size: 0.85rem;
+}
+
+.exercise-card__reps-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exercise-card__reps-btn {
+  width: 34px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
+}
 
-  .description {
-    margin: 0;
-    font-size: 0.9em;
-    color: #ccc;
-  }
-
-  .muscle-groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-
-    span {
-      font-size: 0.75em;
-      background-color: #333;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-  }
-
-  .actions {
-    margin-top: auto;
-    padding-top: 12px;
-    border-top: 1px solid #444;
-
-    .inputs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-      align-items: center;
-
-      label {
-        font-size: 0.8em;
-
-        input {
-          width: 40px;
-          background: #333;
-          color: white;
-          border: none;
-          margin-left: 4px;
-        }
-      }
-    }
-
-    button {
-      width: 100%;
-      padding: 6px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-
-      &:hover {
-        background-color: #0056b3;
-      }
-    }
-  }
+.exercise-card__reps-input {
+  width: 64px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  text-align: center;
+  outline: none;
 }

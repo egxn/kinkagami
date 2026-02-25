@@ -9,6 +9,47 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  z-index: 10;
+
+  .create-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+
+    h1 {
+      margin: 0;
+    }
+
+    .goto-player-btn {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(35, 134, 54, 0.3);
+
+      &:hover {
+        background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(35, 134, 54, 0.4);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
 
   h1 {
     margin-bottom: 20px;

@@ -1,3 +1,6 @@
+import type { Pose } from "@tensorflow-models/pose-detection";
+import type { RecordingAngleEntry } from "../utils/poseUtils";
+
 export type BodyPart =
   | "nose"
   | "left_eye"
@@ -55,20 +58,91 @@ export interface CompletionCriteria {
   terminal_nodes: string[];
 }
 
-export interface ExerciseDef {
-  exercise_id: string;
-  name: string;
-  description: string;
-  muscle_groups: string[];
-  difficulty: "beginner" | "intermedio" | "advanced" | string;
-  instructions: string[];
-  signals: Record<string, SignalDef>;
-  event_graph: EventGraph;
+export interface RecordingPoint {
+  timestamp: number;
+  poses: Pose[];
+}
+
+export interface RecordingAngle {
+  timestamp: number;
+  angles: RecordingAngleEntry[];
+}
+
+/**
+ * Unified Exercise type for both definitions and records
+ */
+export interface Exercise {
+  _id?: string;
+  _rev?: string;
+  exercise_id?: string;
+  name?: string;
+  description?: string;
+  muscle_groups?: string[];
+  difficulty?: "beginner" | "intermedio" | "advanced" | string;
+  instructions?: string[];
+  signals?: Record<string, SignalDef>;
+  event_graph?: EventGraph;
   time_constraints?: TimeConstraint[];
-  completion: CompletionCriteria;
-  metadata?: {
-    version: string;
-    created_at?: string;
-    updated_at?: string;
-  };
+  completion?: CompletionCriteria;
+  created_at: string;
+  duration?: number;
+  recording_angles: RecordingAngle[];
+  recording_points: RecordingPoint[];
+  reps?: number;
+  sets?: number;
+  updatedAt: number;
+}
+
+/** @deprecated Use Exercise instead */
+export type ExerciseDef = Exercise;
+
+/**
+ * Simplified body parts for stats (excluding eyes and merging symmetric parts)
+ */
+export type SimplifiedBodyPart =
+  | "nose"
+  | "ear"
+  | "shoulder"
+  | "elbow"
+  | "wrist"
+  | "hip"
+  | "knee"
+  | "ankle";
+
+/**
+ * Stats for a routine showing percentage of body parts exercised
+ */
+export interface RoutineStats {
+  /** Percentage of each body part being exercised (0-100) */
+  bodyParts: Record<SimplifiedBodyPart, number>;
+  /** Total unique muscle groups targeted */
+  muscleGroups: string[];
+}
+
+/**
+ * Routine item with per-exercise configuration
+ */
+export interface RoutineExerciseItem {
+  exerciseId: string;
+  reps: number;
+}
+
+/**
+ * Routine containing a sequence of exercises
+ */
+export interface Routine {
+  _id?: string;
+  _rev?: string;
+  name: string;
+  description?: string;
+  /** Array of exercise IDs (legacy/backwards compatibility) */
+  exercises: string[];
+  /** Items with per-exercise reps (preferred) */
+  items?: RoutineExerciseItem[];
+  /** Total estimated time in seconds */
+  time: number;
+  /** Stats about body parts exercised */
+  stats: RoutineStats;
+  created_at: string;
+  updatedAt: number;
 }

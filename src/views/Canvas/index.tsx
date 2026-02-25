@@ -1,22 +1,21 @@
-import { useRef, useEffect, useCallback, memo } from "react";
+import { useEffect, useCallback, memo, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import usePoseContext from "../../context/usePoseContext";
 import { usePoseDetection } from "../../hooks/usePoseDetection";
-import { drawPosesOnCanvas } from "../../utils/canvasDrawing";
 import { logger } from "../../utils/logger";
+import Skeleton from "../../components/Skeleton";
 
 function Canvas() {
   const { videoRef, stream, detector, modelLoading, streamReady } =
     usePoseContext();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [poses, setPoses] = useState<poseDetection.Pose[]>([]);
 
   // Handle poses detected
   const handlePosesDetected = useCallback(
     (poses: poseDetection.Pose[]) => {
-      const canvas = canvasRef.current;
       const video = videoRef.current;
-      if (!canvas || !video) return;
-      drawPosesOnCanvas(canvas, video, poses);
+      if (!video) return;
+      setPoses(poses);
     },
     [videoRef],
   );
@@ -28,6 +27,7 @@ function Canvas() {
     modelLoading,
     streamReady,
     onPosesDetected: handlePosesDetected,
+    debugTag: "MoveNet/Canvas",
   });
 
   // Initialize video stream
@@ -64,42 +64,25 @@ function Canvas() {
     };
   }, [stream, videoRef]);
 
-  // Sync canvas dimensions with window
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const updateCanvasDimensions = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      logger.log(
-        "Canvas",
-        `Canvas dimensions: ${canvas.width}x${canvas.height}`,
-      );
-    };
-
-    updateCanvasDimensions();
-    window.addEventListener("resize", updateCanvasDimensions);
-
-    return () => {
-      window.removeEventListener("resize", updateCanvasDimensions);
-    };
-  }, []);
-
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       style={{
         position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
+        inset: 0,
         transform: "scaleX(-1)",
         border: "none",
         pointerEvents: "none",
       }}
-    />
+    >
+      <Skeleton
+        variant="video"
+        autoSize
+        videoRef={videoRef}
+        poses={poses}
+        opacity={1}
+        colors={{ skeleton: "lime", keypoints: "red" }}
+      />
+    </div>
   );
 }
 

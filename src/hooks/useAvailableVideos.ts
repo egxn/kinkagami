@@ -30,7 +30,9 @@ export const useAvailableVideos = () => {
       } catch {
         // Silently fail - videos can be added manually via URL input
         // This happens when the server-videos.js script is not running
-        console.log("Video API server not available. Videos can be added via URL input.");
+        console.log(
+          "Video API server not available. Videos can be added via URL input.",
+        );
         setVideos([]);
         setError(null);
       } finally {

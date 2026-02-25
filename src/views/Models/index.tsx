@@ -1,0 +1,355 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as poseDetection from "@tensorflow-models/pose-detection";
+
+import Skeleton from "../../components/Skeleton";
+import usePoseContext from "../../context/usePoseContext";
+import { useBlazePose, useHandPose, usePoseDetection } from "../../hooks";
+import { logger } from "../../utils/logger";
+
+type ModelOption = "movenet" | "blazepose" | "handpose";
+
+function PoseModelCanvas({
+  detector,
+  modelLoading,
+  modelError,
+  streamReady,
+  videoRef,
+  debugTag,
+  debugVerbose = false,
+}: {
+  detector: poseDetection.PoseDetector | null;
+  modelLoading: boolean;
+  modelError: string | null;
+  streamReady: boolean;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  debugTag: string;
+  debugVerbose?: boolean;
+}) {
+  const [poses, setPoses] = useState<poseDetection.Pose[]>([]);
+
+  const handlePosesDetected = useCallback((nextPoses: poseDetection.Pose[]) => {
+    setPoses(nextPoses);
+  }, []);
+
+  usePoseDetection({
+    detector,
+    videoRef,
+    modelLoading,
+    streamReady,
+    onPosesDetected: handlePosesDetected,
+    debugTag,
+    debugVerbose,
+  });
+
+  return (
+    <>
+      <Skeleton
+        variant="video"
+        autoSize
+        videoRef={videoRef}
+        poses={poses}
+        opacity={1}
+        colors={{ skeleton: "lime", keypoints: "red" }}
+      />
+      <p style={{ marginTop: 8 }}>
+        {modelLoading && "Cargando modelo..."}
+        {!modelLoading && modelError && `Error: ${modelError}`}
+        {!modelLoading && !modelError && "Modelo listo. Detectando poses."}
+      </p>
+    </>
+  );
+}
+
+interface HandKeypoint {
+  x: number;
+  y: number;
+  name?: string;
+}
+
+interface HandPrediction {
+  keypoints?: HandKeypoint[];
+}
+
+function HandModelCanvas({
+  streamReady,
+  videoRef,
+}: {
+  streamReady: boolean;
+  videoRef: React.RefObject<HTMLVideoElement>;
+}) {
+  const { detector, isLoading: modelLoading, error: modelError } = useHandPose();
+  const [hands, setHands] = useState<HandPrediction[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let mounted = true;
+
+    const detect = async () => {
+      if (!mounted) return;
+
+      const video = videoRef.current;
+      if (
+        !detector ||
+        modelLoading ||
+        !streamReady ||
+        !video ||
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+      ) {
+        timeoutId = setTimeout(detect, 60);
+        return;
+      }
+
+      try {
+        // Sync HTML attributes so the library's getImageSize reads real dimensions
+        if (video.width !== video.videoWidth) video.width = video.videoWidth;
+        if (video.height !== video.videoHeight) video.height = video.videoHeight;
+
+        const result = (await detector.estimateHands(video)) as HandPrediction[];
+        if (mounted) {
+          setHands(result ?? []);
+        }
+      } catch (error) {
+        logger.error("Models", "HandPose detection error", error);
+      } finally {
+        timeoutId = setTimeout(detect, 30);
+      }
+    };
+
+    detect();
+
+    return () => {
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [detector, modelLoading, streamReady, videoRef]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!canvas || !container || !video) return;
+
+    const rect = container.getBoundingClientRect();
+    const displayW = Math.max(1, Math.floor(rect.width));
+    const displayH = Math.max(1, Math.floor(rect.height));
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(displayW * dpr);
+    canvas.height = Math.floor(displayH * dpr);
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, displayW, displayH);
+
+    if (!video.videoWidth || !video.videoHeight) return;
+
+    const sx = displayW / video.videoWidth;
+    const sy = displayH / video.videoHeight;
+
+    for (const hand of hands) {
+      for (const kp of hand.keypoints ?? []) {
+        const x = kp.x * sx;
+        const y = kp.y * sy;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#00d4ff";
+        ctx.fill();
+
+        if (kp.name) {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "10px monospace";
+          ctx.fillText(kp.name, x + 6, y - 6);
+        }
+      }
+    }
+  }, [hands, videoRef]);
+
+  return (
+    <>
+      <div ref={containerRef} style={{ position: "absolute", inset: 0 }}>
+        <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />
+      </div>
+      <p style={{ marginTop: 8 }}>
+        {modelLoading && "Cargando modelo..."}
+        {!modelLoading && modelError && `Error: ${modelError}`}
+        {!modelLoading && !modelError && "Modelo listo. Detectando manos."}
+      </p>
+    </>
+  );
+}
+
+function BlazePoseModelCanvas({
+  streamReady,
+  videoRef,
+}: {
+  streamReady: boolean;
+  videoRef: React.RefObject<HTMLVideoElement>;
+}) {
+  const { detector, isLoading: modelLoading, error: modelError } = useBlazePose();
+
+  return (
+    <PoseModelCanvas
+      detector={detector}
+      modelLoading={modelLoading}
+      modelError={modelError}
+      streamReady={streamReady}
+      videoRef={videoRef}
+      debugTag="BlazePose/Models"
+      debugVerbose
+    />
+  );
+}
+
+export default function Models() {
+  const {
+    cameraError,
+    cameraReady,
+    detector: movenetDetector,
+    modelError: movenetModelError,
+    modelLoading: movenetModelLoading,
+    stream,
+    streamReady,
+    videoRef,
+  } = usePoseContext();
+
+  const [selectedModel, setSelectedModel] = useState<ModelOption>("blazepose");
+
+  useEffect(() => {
+    const video = videoRef.current;
+    logger.log("Models", "Model selection changed", {
+      selectedModel,
+      streamReady,
+      hasStream: !!stream,
+      hasVideo: !!video,
+      videoReadyState: video?.readyState,
+      videoWidth: video?.videoWidth,
+      videoHeight: video?.videoHeight,
+    });
+  }, [selectedModel, streamReady, stream, videoRef]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !stream) return;
+
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
+    }
+
+    const playVideo = async () => {
+      try {
+        if (video.paused) {
+          await video.play();
+        }
+      } catch (error) {
+        logger.error("Models", "Error playing video", error);
+      }
+    };
+
+    if (video.readyState >= 2) {
+      playVideo();
+    } else {
+      video.addEventListener("loadedmetadata", playVideo, { once: true });
+    }
+
+    return () => {
+      video.removeEventListener("loadedmetadata", playVideo);
+    };
+  }, [stream, videoRef]);
+
+  const selectedLabel = useMemo(() => {
+    if (selectedModel === "movenet") return "MoveNet";
+    if (selectedModel === "blazepose") return "BlazePose";
+    return "HandPose";
+  }, [selectedModel]);
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 20,
+        padding: 16,
+        color: "white",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
+        <label htmlFor="model-selector">Modelo</label>
+        <select
+          id="model-selector"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value as ModelOption)}
+          style={{ padding: "8px 10px" }}
+        >
+          <option value="movenet">MoveNet</option>
+          <option value="blazepose">BlazePose</option>
+          <option value="handpose">HandPose</option>
+        </select>
+
+        <span>
+          Camara: {cameraReady ? "lista" : "inicializando"}
+          {cameraError ? ` (${cameraError})` : ""}
+        </span>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 56,
+          left: 16,
+          right: 16,
+          bottom: 16,
+          border: "1px solid rgba(255,255,255,0.3)",
+          transform: "scaleX(-1)",
+        }}
+      >
+        {selectedModel === "movenet" && (
+          <PoseModelCanvas
+            detector={movenetDetector}
+            modelLoading={movenetModelLoading}
+            modelError={movenetModelError}
+            streamReady={streamReady}
+            videoRef={videoRef}
+            debugTag="MoveNet/Models"
+          />
+        )}
+
+        {selectedModel === "blazepose" && (
+          <BlazePoseModelCanvas streamReady={streamReady} videoRef={videoRef} />
+        )}
+
+        {selectedModel === "handpose" && (
+          <HandModelCanvas streamReady={streamReady} videoRef={videoRef} />
+        )}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          right: 20,
+          top: 20,
+          background: "rgba(0,0,0,0.6)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          borderRadius: 6,
+          padding: "8px 10px",
+        }}
+      >
+        Validando: {selectedLabel}
+      </div>
+    </div>
+  );
+}

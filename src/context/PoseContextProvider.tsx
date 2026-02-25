@@ -17,7 +17,6 @@ export const PoseProvider = ({
 }: PoseProviderProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
-  const onStreamReadyRef = useRef<(() => void) | null>(null);
 
   const {
     stream,
@@ -28,11 +27,6 @@ export const PoseProvider = ({
   } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
   const { detector, isLoading: modelLoading, error: modelError } = useMovenet();
 
-  // Update the ref when onStreamReady changes
-  React.useEffect(() => {
-    onStreamReadyRef.current = onStreamReady;
-  }, [onStreamReady]);
-
   const value = useMemo<PoseContextType>(
     () => ({
       videoRef: videoRef as React.RefObject<HTMLVideoElement>,
@@ -42,7 +36,7 @@ export const PoseProvider = ({
       cameraReady,
       modelLoading,
       modelError,
-      onStreamReady: onStreamReadyRef.current,
+      onStreamReady,
       streamReady,
     }),
     [
@@ -53,6 +47,7 @@ export const PoseProvider = ({
       cameraReady,
       modelLoading,
       modelError,
+      onStreamReady,
       streamReady,
     ],
   );

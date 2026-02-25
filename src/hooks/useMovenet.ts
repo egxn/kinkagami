@@ -57,6 +57,7 @@ export const useMovenet = (): UseMovenetReturn => {
             modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
             modelUrl: "/models/movenet/model.json",
             enableSmoothing: true,
+            
           },
         );
 

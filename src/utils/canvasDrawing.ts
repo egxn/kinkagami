@@ -7,6 +7,29 @@ const KEYPOINT_COLOR = "red";
 const SKELETON_COLOR = "lime";
 const ANGLE_COLOR = "#00BFFF"; // Deep Sky Blue for angles
 const ANGLE_TEXT_COLOR = "#FFD700"; // Gold for angle values
+const VISIBILITY_THRESHOLD = 0.1;
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const normalizedScore = (score: number | undefined) =>
+  isFiniteNumber(score) ? score : 1;
+
+const isVisibleKeypoint = (kp: poseDetection.Keypoint) =>
+  isFiniteNumber(kp.x) &&
+  isFiniteNumber(kp.y) &&
+  normalizedScore(kp.score) > VISIBILITY_THRESHOLD;
+
+const getAdjacentPairsForPose = (keypointCount: number): [number, number][] => {
+  const model =
+    keypointCount > 20
+      ? poseDetection.SupportedModels.BlazePose
+      : poseDetection.SupportedModels.MoveNet;
+
+  return poseDetection.util
+    .getAdjacentPairs(model)
+    .map(([i, j]) => [i, j] as [number, number]);
+};
 
 // Helper function to draw a single keypoint
 export const drawKeypoint = (
@@ -37,7 +60,7 @@ export const drawConnections = (
     const kp1 = keypoints[i];
     const kp2 = keypoints[j];
 
-    if (kp1.score && kp2.score && kp1.score > 0.1 && kp2.score > 0.1) {
+    if (isVisibleKeypoint(kp1) && isVisibleKeypoint(kp2)) {
       ctx.beginPath();
       ctx.moveTo(kp1.x, kp1.y);
       ctx.lineTo(kp2.x, kp2.y);
@@ -57,13 +80,18 @@ export const drawAngle = (
   scaleY: number,
 ) => {
   const [p1Name, vertexName, p3Name] = angleEntry.points;
-  
+
   const p1 = keypoints.find((kp) => kp.name === p1Name);
   const vertex = keypoints.find((kp) => kp.name === vertexName);
   const p3 = keypoints.find((kp) => kp.name === p3Name);
 
   if (!p1 || !vertex || !p3) return;
-  if ((p1.score ?? 0) < 0.1 || (vertex.score ?? 0) < 0.1 || (p3.score ?? 0) < 0.1) return;
+  if (
+    !isVisibleKeypoint(p1) ||
+    !isVisibleKeypoint(vertex) ||
+    !isVisibleKeypoint(p3)
+  )
+    return;
 
   const vx = vertex.x * scaleX;
   const vy = vertex.y * scaleY;
@@ -98,61 +126,97 @@ export const drawPosesOnCanvas = (
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
   poses: poseDetection.Pose[],
+  options?: {
+    opacity?: number;
+    skeletonColor?: string;
+    keypointColor?: string;
+    fitMode?: "fill" | "cover" | "contain";
+    renderWidth?: number;
+    renderHeight?: number;
+  },
 ) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const renderWidth = Math.max(
+    1,
+    Math.floor(options?.renderWidth ?? canvas.clientWidth ?? canvas.width),
+  );
+  const renderHeight = Math.max(
+    1,
+    Math.floor(options?.renderHeight ?? canvas.clientHeight ?? canvas.height),
+  );
 
-  const scaleX = canvas.width / video.videoWidth;
-  const scaleY = canvas.height / video.videoHeight;
+  ctx.clearRect(0, 0, renderWidth, renderHeight);
+
+  const opacity = options?.opacity ?? 1;
+  const skeletonColor = options?.skeletonColor ?? SKELETON_COLOR;
+  const keypointColor = options?.keypointColor ?? KEYPOINT_COLOR;
+  const fitMode = options?.fitMode ?? "fill";
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+
+  let scaleX = renderWidth / video.videoWidth;
+  let scaleY = renderHeight / video.videoHeight;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (fitMode === "cover" || fitMode === "contain") {
+    const uniformScale =
+      fitMode === "cover"
+        ? Math.max(scaleX, scaleY)
+        : Math.min(scaleX, scaleY);
+    scaleX = uniformScale;
+    scaleY = uniformScale;
+    offsetX = (renderWidth - video.videoWidth * uniformScale) / 2;
+    offsetY = (renderHeight - video.videoHeight * uniformScale) / 2;
+  }
 
   logger.log(
     "Canvas",
-    `Video: ${video.videoWidth}x${video.videoHeight}, Canvas: ${canvas.width}x${canvas.height}`,
+    `Video: ${video.videoWidth}x${video.videoHeight}, Render: ${renderWidth}x${renderHeight}, Fit: ${fitMode}`,
   );
 
   poses.forEach((pose) => {
-    const visibleKeypoints = pose.keypoints.filter(
-      (kp) => kp.score && kp.score > 0.1,
-    );
-    logger.log(
-      "Canvas",
-      `Pose has ${visibleKeypoints.length} keypoints with score > 0.1`,
-    );
+    const visibleKeypoints = pose.keypoints.filter(isVisibleKeypoint);
+    logger.log("Canvas", `Pose has ${visibleKeypoints.length} visible keypoints`);
 
     // Draw keypoints
     pose.keypoints.forEach((keypoint) => {
-      if (keypoint.score && keypoint.score > 0.1) {
-        const x = keypoint.x * scaleX;
-        const y = keypoint.y * scaleY;
-        drawKeypoint(ctx, x, y, keypoint.name || "");
+      if (isVisibleKeypoint(keypoint)) {
+        const x = keypoint.x * scaleX + offsetX;
+        const y = keypoint.y * scaleY + offsetY;
+        drawKeypoint(ctx, x, y, keypoint.name || "", keypointColor);
       }
     });
 
     // Draw connections
-    const adjacentKeyPoints = poseDetection.util.getAdjacentPairs(
-      poseDetection.SupportedModels.MoveNet,
-    );
+    const adjacentKeyPoints = getAdjacentPairsForPose(pose.keypoints.length);
 
     const scaledKeypoints = pose.keypoints.map((kp) => ({
       ...kp,
-      x: kp.x * scaleX,
-      y: kp.y * scaleY,
+      x: kp.x * scaleX + offsetX,
+      y: kp.y * scaleY + offsetY,
     }));
 
-    drawConnections(ctx, scaledKeypoints, adjacentKeyPoints);
+    drawConnections(ctx, scaledKeypoints, adjacentKeyPoints, skeletonColor);
   });
+
+  ctx.restore();
 };
 
 // Calculate bounding box for visible keypoints
 const calculateBoundingBox = (poses: poseDetection.Pose[]) => {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   let hasVisiblePoints = false;
 
   poses.forEach((pose) => {
     pose.keypoints.forEach((kp) => {
-      if (kp.score && kp.score > 0.1) {
+      if (isVisibleKeypoint(kp)) {
         hasVisiblePoints = true;
         minX = Math.min(minX, kp.x);
         minY = Math.min(minY, kp.y);
@@ -192,7 +256,7 @@ export const drawRecordedPose = (
 
   // Calculate bounding box of visible keypoints
   const bbox = calculateBoundingBox(poses);
-  
+
   // Add padding around the skeleton (20% of bounding box size)
   const paddingX = bbox.width * 0.2;
   const paddingY = bbox.height * 0.2;
@@ -202,20 +266,22 @@ export const drawRecordedPose = (
   // Calculate scale to fit content in canvas while maintaining aspect ratio
   const scaleToFit = Math.min(
     canvasWidth / contentWidth,
-    canvasHeight / contentHeight
+    canvasHeight / contentHeight,
   );
 
   // Calculate offset to center the content
   const scaledContentWidth = contentWidth * scaleToFit;
   const scaledContentHeight = contentHeight * scaleToFit;
-  const offsetX = (canvasWidth - scaledContentWidth) / 2 - (bbox.minX - paddingX) * scaleToFit;
-  const offsetY = (canvasHeight - scaledContentHeight) / 2 - (bbox.minY - paddingY) * scaleToFit;
+  const offsetX =
+    (canvasWidth - scaledContentWidth) / 2 -
+    (bbox.minX - paddingX) * scaleToFit;
+  const offsetY =
+    (canvasHeight - scaledContentHeight) / 2 -
+    (bbox.minY - paddingY) * scaleToFit;
 
   poses.forEach((pose) => {
     // Draw connections first (behind keypoints)
-    const adjacentKeyPoints = poseDetection.util.getAdjacentPairs(
-      poseDetection.SupportedModels.MoveNet,
-    );
+    const adjacentKeyPoints = getAdjacentPairsForPose(pose.keypoints.length);
 
     const scaledKeypoints = pose.keypoints.map((kp) => ({
       ...kp,
@@ -227,7 +293,7 @@ export const drawRecordedPose = (
 
     // Draw keypoints
     pose.keypoints.forEach((keypoint) => {
-      if (keypoint.score && keypoint.score > 0.1) {
+      if (isVisibleKeypoint(keypoint)) {
         const x = keypoint.x * scaleToFit + offsetX;
         const y = keypoint.y * scaleToFit + offsetY;
         drawKeypoint(ctx, x, y, "", keypointColor);
@@ -237,7 +303,14 @@ export const drawRecordedPose = (
     // Always draw angles if provided
     if (angles && angles.length > 0) {
       angles.forEach((angleEntry) => {
-        drawAngleCentered(ctx, pose.keypoints, angleEntry, scaleToFit, offsetX, offsetY);
+        drawAngleCentered(
+          ctx,
+          pose.keypoints,
+          angleEntry,
+          scaleToFit,
+          offsetX,
+          offsetY,
+        );
       });
     }
   });
@@ -253,13 +326,18 @@ const drawAngleCentered = (
   offsetY: number,
 ) => {
   const [p1Name, vertexName, p3Name] = angleEntry.points;
-  
+
   const p1 = keypoints.find((kp) => kp.name === p1Name);
   const vertex = keypoints.find((kp) => kp.name === vertexName);
   const p3 = keypoints.find((kp) => kp.name === p3Name);
 
   if (!p1 || !vertex || !p3) return;
-  if ((p1.score ?? 0) < 0.1 || (vertex.score ?? 0) < 0.1 || (p3.score ?? 0) < 0.1) return;
+  if (
+    !isVisibleKeypoint(p1) ||
+    !isVisibleKeypoint(vertex) ||
+    !isVisibleKeypoint(p3)
+  )
+    return;
 
   const vx = vertex.x * scale + offsetX;
   const vy = vertex.y * scale + offsetY;

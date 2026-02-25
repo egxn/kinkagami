@@ -8,7 +8,10 @@ interface VideoSelectorProps {
   currentUrl: string;
 }
 
-export default function VideoSelector({ onSelect, currentUrl }: VideoSelectorProps) {
+export default function VideoSelector({
+  onSelect,
+  currentUrl,
+}: VideoSelectorProps) {
   const { t } = useTranslation();
   const { videos, loading } = useAvailableVideos();
   const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +34,8 @@ export default function VideoSelector({ onSelect, currentUrl }: VideoSelectorPro
           onClick={() => setIsOpen(!isOpen)}
           disabled={loading}
         >
-          {loading ? t("create.loading_videos") : t("create.available_videos")} ({videos.length})
+          {loading ? t("create.loading_videos") : t("create.available_videos")}{" "}
+          ({videos.length})
         </button>
       </div>
 

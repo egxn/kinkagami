@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Exercise } from "../db/dbService";
+import type { Exercise } from "../types/exercise";
 import {
   getAllExercises,
   addExercise,
@@ -12,7 +12,7 @@ export interface UseExercisesResult {
   loading: boolean;
   error: Error | null;
   addNewExercise: (
-    exercise: Omit<Exercise, "_id" | "_rev" | "createdAt" | "updatedAt">,
+    exercise: Omit<Exercise, "_id" | "_rev" | "updatedAt">,
   ) => Promise<void>;
   updateExerciseData: (id: string, updates: Partial<Exercise>) => Promise<void>;
   deleteExerciseData: (id: string) => Promise<void>;
@@ -48,9 +48,7 @@ export function useExercises(): UseExercisesResult {
 
   // Add new exercise
   const addNewExercise = useCallback(
-    async (
-      exercise: Omit<Exercise, "_id" | "_rev" | "createdAt" | "updatedAt">,
-    ) => {
+    async (exercise: Omit<Exercise, "_id" | "_rev" | "updatedAt">) => {
       try {
         setError(null);
         await addExercise(exercise);

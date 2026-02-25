@@ -1,5 +1,5 @@
 import type { Pose } from "@tensorflow-models/pose-detection";
-import type { ExerciseDef } from "../types/exercise";
+import type { Exercise } from "../types/exercise";
 import { calculateAngle, findKeypoint } from "./geometry";
 
 export interface AngleResult {
@@ -19,20 +19,47 @@ export interface AngleDefinition {
  */
 export const BODY_ANGLES: AngleDefinition[] = [
   // Left side angles
-  { name: "left_elbow_angle", points: ["left_shoulder", "left_elbow", "left_wrist"] },
-  { name: "left_shoulder_angle", points: ["left_elbow", "left_shoulder", "left_hip"] },
-  { name: "left_hip_angle", points: ["left_shoulder", "left_hip", "left_knee"] },
+  {
+    name: "left_elbow_angle",
+    points: ["left_shoulder", "left_elbow", "left_wrist"],
+  },
+  {
+    name: "left_shoulder_angle",
+    points: ["left_elbow", "left_shoulder", "left_hip"],
+  },
+  {
+    name: "left_hip_angle",
+    points: ["left_shoulder", "left_hip", "left_knee"],
+  },
   { name: "left_knee_angle", points: ["left_hip", "left_knee", "left_ankle"] },
-  
+
   // Right side angles
-  { name: "right_elbow_angle", points: ["right_shoulder", "right_elbow", "right_wrist"] },
-  { name: "right_shoulder_angle", points: ["right_elbow", "right_shoulder", "right_hip"] },
-  { name: "right_hip_angle", points: ["right_shoulder", "right_hip", "right_knee"] },
-  { name: "right_knee_angle", points: ["right_hip", "right_knee", "right_ankle"] },
-  
+  {
+    name: "right_elbow_angle",
+    points: ["right_shoulder", "right_elbow", "right_wrist"],
+  },
+  {
+    name: "right_shoulder_angle",
+    points: ["right_elbow", "right_shoulder", "right_hip"],
+  },
+  {
+    name: "right_hip_angle",
+    points: ["right_shoulder", "right_hip", "right_knee"],
+  },
+  {
+    name: "right_knee_angle",
+    points: ["right_hip", "right_knee", "right_ankle"],
+  },
+
   // Cross-body / torso angles
-  { name: "torso_inclination", points: ["left_shoulder", "left_hip", "left_knee"] },
-  { name: "shoulder_alignment", points: ["left_elbow", "left_shoulder", "right_shoulder"] },
+  {
+    name: "torso_inclination",
+    points: ["left_shoulder", "left_hip", "left_knee"],
+  },
+  {
+    name: "shoulder_alignment",
+    points: ["left_elbow", "left_shoulder", "right_shoulder"],
+  },
   { name: "hip_alignment", points: ["left_knee", "left_hip", "right_hip"] },
 ];
 
@@ -87,12 +114,12 @@ export const calculateAllBodyAngles = (
  */
 export const calculateExerciseAngles = (
   pose: Pose,
-  exercise: ExerciseDef,
+  exercise: Exercise,
   minConfidence = 0.5,
 ): Record<string, number> => {
   const results: Record<string, number> = {};
 
-  if (!pose.keypoints) return results;
+  if (!pose.keypoints || !exercise.signals) return results;
 
   for (const [signalName, signalDef] of Object.entries(exercise.signals)) {
     if (signalDef.type === "angle") {

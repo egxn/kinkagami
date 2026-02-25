@@ -1,15 +1,15 @@
-import type { ExerciseDef } from "../types/exercise";
+import type { Exercise } from "../types/exercise";
 
 /**
  * Loads all exercises using Vite's import.meta.glob.
  * returns a list of contents of the json files
  */
-export const loadAllExercises = (): ExerciseDef[] => {
+export const loadAllExercises = (): Exercise[] => {
   const modules = import.meta.glob("../db/exercises/*.json", { eager: true });
   // Handle both default export (if JSON imported as module) and direct content
   return Object.values(modules).map(
-    (mod: any) => mod.default || mod,
-  ) as ExerciseDef[];
+    (mod: unknown) => (mod as { default?: Exercise }).default || mod,
+  ) as Exercise[];
 };
 
 /**
@@ -17,23 +17,16 @@ export const loadAllExercises = (): ExerciseDef[] => {
  * Pure function.
  */
 export const validateExercise = (
-  exercise: ExerciseDef,
+  exercise: Exercise,
 ): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  if (!exercise.exercise_id) {
-    errors.push("Missing exercise_id");
-  }
-  if (!exercise.name) {
-    errors.push("Missing name");
-  }
-  if (!exercise.signals) {
-    errors.push("Missing signals definition");
-  }
-  if (!exercise.event_graph) {
-    errors.push("Missing event_graph");
+  // Required fields
+  if (!exercise.created_at) {
+    errors.push("Missing created_at");
   }
 
+  // Validate event_graph structure if present
   if (exercise.event_graph) {
     if (!Array.isArray(exercise.event_graph.nodes)) {
       errors.push("event_graph.nodes must be an array");
@@ -53,8 +46,8 @@ export const validateExercise = (
  * Pure function.
  */
 export const getExerciseById = (
-  exercises: ExerciseDef[],
+  exercises: Exercise[],
   id: string,
-): ExerciseDef | undefined => {
+): Exercise | undefined => {
   return exercises.find((e) => e.exercise_id === id);
 };

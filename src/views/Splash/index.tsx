@@ -1,12 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logger } from "../../utils/logger";
 import usePoseContext from "../../context/usePoseContext";
 
 function Splash() {
   const navigate = useNavigate();
+  const [loadingText, setLoadingText] = useState("Loading...");
   const { cameraError, cameraReady, modelError, modelLoading } =
     usePoseContext();
+
+
+  // Animate loading text with cycling dots
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadingText((prev) => {
+        if (prev === "Loading") return "Loading.";
+        if (prev === "Loading.") return "Loading..";
+        if (prev === "Loading..") return "Loading...";
+        return "Loading";
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     logger.log(
@@ -31,14 +47,14 @@ function Splash() {
         "Splash",
         "Camera ready, navigating to /canvas (model loading in background)",
       );
-      navigate("/canvas");
+      navigate("/stack");
     }
   }, [cameraReady, cameraError, modelError, navigate, modelLoading]);
 
   return (
     <div className="splash-screen">
-      <h1>Splash</h1>
-      <p>Loading...</p>
+      <h1> 🦝 🪞 </h1>
+      <p> {loadingText} </p>
     </div>
   );
 }

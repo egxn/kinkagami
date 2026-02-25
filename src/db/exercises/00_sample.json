@@ -29,63 +29,63 @@
   "event_graph": {
     "nodes": [
       {
-        "id": "knee_flexed",
-        "signal": "knee_angle",
+        "id": "",
+        "signal": "",
         "range": [80, 100],
         "hold_ms": 150,
         "emit": true
       },
       {
-        "id": "hip_flexed",
-        "signal": "hip_angle",
+        "id": "",
+        "signal": "",
         "range": [70, 95],
         "hold_ms": 150,
         "emit": true
       },
       {
-        "id": "bottom_reached",
+        "id": "",
         "type": "sync",
         "requires": ["knee_flexed", "hip_flexed"]
       },
       {
-        "id": "arms_raised",
-        "signal": "shoulder_angle",
+        "id": "",
+        "signal": "",
         "range": [140, 180],
         "hold_ms": 120,
         "emit": true
       },
       {
-        "id": "knee_extended",
-        "signal": "knee_angle",
+        "id": "",
+        "signal": "",
         "range": [160, 180],
         "hold_ms": 150
       },
       {
-        "id": "hip_extended",
-        "signal": "hip_angle",
+        "id": "",
+        "signal": "",
         "range": [160, 180],
         "hold_ms": 150
       }
     ],
     "edges": [
-      { "from": "knee_flexed", "to": "bottom_reached" },
-      { "from": "hip_flexed", "to": "bottom_reached" },
-      { "from": "bottom_reached", "to": "arms_raised" },
-      { "from": "arms_raised", "to": "knee_extended" },
-      { "from": "arms_raised", "to": "hip_extended" }
+      { "from": "", "to": "" },
+      { "from": "", "to": "" },
+      { "from": "", "to": "" },
+      { "from": "", "to": "" },
+      { "from": "", "to": "" }
     ]
   },
   "time_constraints": [
     {
-      "id": "arms_after_bottom",
-      "from": "bottom_reached",
-      "to": "arms_raised",
+      "id": "",
+      "from": "",
+      "to": "",
       "min_ms": 50,
       "max_ms": 200,
-      "severity": "soft"
+      "severity": ""
     }
   ],
   "completion": {
-    "terminal_nodes": ["knee_extended", "hip_extended"]
+    "terminal_nodes": ["", ""]
   }
 }

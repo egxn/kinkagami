@@ -1,5 +1,9 @@
 export { useCamera } from "./useCamera";
 export { useMovenet } from "./useMovenet";
+export { useBlazePose } from "./useBlazePose";
+export { useHandPose } from "./useHandPose";
 export { usePoseDetection } from "./usePoseDetection";
 export { useExercises } from "./useExercises";
+export { useRoutines } from "./useRoutines";
+export { useInfiniteScroll } from "./useInfiniteScroll";
 export { useAvailableVideos } from "./useAvailableVideos";

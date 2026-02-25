@@ -10,6 +10,7 @@ export const useCamera = (
   const [error, setError] = useState<string | null>(null);
   const [onStreamReady, setOnStreamReady] = useState<(() => void) | null>(null);
   const [streamReady, setStreamReady] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -33,6 +34,7 @@ export const useCamera = (
         }
 
         streamRef.current = stream;
+        setStream(stream);
         setIsReady(true);
         setStreamReady(true);
         logger.log("useCamera", "Camera stream obtained successfully");
@@ -64,7 +66,7 @@ export const useCamera = (
 
   return {
     videoRef: videoRef as React.RefObject<HTMLVideoElement>,
-    stream: streamRef.current,
+    stream,
     isReady,
     error,
     onStreamReady,

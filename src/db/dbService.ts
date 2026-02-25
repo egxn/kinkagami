@@ -1,49 +1,21 @@
-// @ts-ignore
+// @ts-expect-error PouchDB types
 import PouchDB from "pouchdb/dist/pouchdb.js";
-import type { RecordingAngleEntry } from "../utils/poseUtils";
-import type { Pose } from "@tensorflow-models/pose-detection";
+import type {
+  Exercise,
+  RecordingAngle,
+  RecordingPoint,
+  Routine,
+  SimplifiedBodyPart,
+} from "../types/exercise";
+
+// Re-export types for backwards compatibility
+export type { Exercise, RecordingAngle, RecordingPoint, Routine };
+/** @deprecated Use Exercise instead */
+export type ExerciseRecord = Exercise;
 
 // Initialize databases
 export const exercisesDB = new PouchDB("exercises");
-export const exercisesRecordsDB = new PouchDB("exercises_records");
-
-export interface Exercise {
-  _id?: string;
-  _rev?: string;
-  name: string;
-  description: string;
-  sets?: number;
-  reps?: number;
-  duration?: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface RecordingPoint {
-  timestamp: number;
-  poses: Pose[];
-}
-
-export interface RecordingAngle {
-  timestamp: number;
-  angles: RecordingAngleEntry[];
-}
-
-export interface ExerciseRecord {
-  _id?: string;
-  _rev?: string;
-  exercise_id: string;
-  name: string;
-  description: string;
-  muscle_groups: string[];
-  difficulty: string;
-  instructions: string[];
-  recording_points: RecordingPoint[];
-  recording_angles: RecordingAngle[];
-  created_at: string;
-  createdAt: number;
-  updatedAt: number;
-}
+export const routinesDB = new PouchDB("routines");
 
 /**
  * Load an exercise from JSON located in src/db/exercises/
@@ -101,14 +73,23 @@ export async function importExercisesFromJSON(exerciseFileNames: string[]) {
     for (const fileName of exerciseFileNames) {
       try {
         const exerciseData = await loadExerciseFromJSON(fileName);
-        const exercise: Omit<Exercise, "_id" | "_rev"> = {
-          name: exerciseData.name || "Unnamed exercise",
-          description: exerciseData.description || "",
+        const exercise: Omit<Exercise, "_id" | "_rev" | "updatedAt"> = {
+          exercise_id: exerciseData.exercise_id,
+          name: exerciseData.name,
+          description: exerciseData.description,
+          muscle_groups: exerciseData.muscle_groups,
+          difficulty: exerciseData.difficulty,
+          instructions: exerciseData.instructions,
+          signals: exerciseData.signals,
+          event_graph: exerciseData.event_graph,
+          time_constraints: exerciseData.time_constraints,
+          completion: exerciseData.completion,
           sets: exerciseData.sets,
           reps: exerciseData.reps,
           duration: exerciseData.duration,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          recording_angles: exerciseData.recording_angles ?? [],
+          recording_points: exerciseData.recording_points ?? [],
+          created_at: new Date().toISOString(),
         };
 
         await addExercise(exercise);
@@ -142,16 +123,26 @@ export async function importExercisesFromJSON(exerciseFileNames: string[]) {
  * Add a new exercise to the database
  */
 export async function addExercise(
-  exercise: Omit<Exercise, "_id" | "_rev" | "createdAt" | "updatedAt">,
+  exercise: Omit<Exercise, "_id" | "_rev" | "updatedAt">,
 ) {
   const doc: Exercise = {
     ...exercise,
-    createdAt: Date.now(),
+    recording_angles: exercise.recording_angles ?? [],
+    recording_points: exercise.recording_points ?? [],
+    created_at: exercise.created_at ?? new Date().toISOString(),
     updatedAt: Date.now(),
   };
 
+  // Debug: Log what's being saved
+  console.log("[addExercise] Saving exercise with fields:", Object.keys(doc));
+  console.log("[addExercise] Has signals:", !!doc.signals, doc.signals ? Object.keys(doc.signals).length : 0);
+  console.log("[addExercise] Has event_graph:", !!doc.event_graph, doc.event_graph?.nodes?.length ?? 0, "nodes");
+  console.log("[addExercise] Has time_constraints:", !!doc.time_constraints, doc.time_constraints?.length ?? 0);
+  console.log("[addExercise] Has completion:", !!doc.completion, doc.completion?.terminal_nodes?.length ?? 0, "terminal nodes");
+
   try {
     const result = await exercisesDB.post(doc);
+    console.log("[addExercise] Saved successfully with id:", result.id);
     return { success: true, id: result.id, rev: result.rev };
   } catch (error) {
     console.error("Error adding exercise:", error);
@@ -253,102 +244,235 @@ export async function clearDatabase() {
   }
 }
 
-// ==================== exercises_records ====================
+/**
+ * Get exercises by exercise_id
+ */
+export async function getExercisesByExerciseId(
+  exerciseId: string,
+): Promise<Exercise[]> {
+  try {
+    const allExercises = await getAllExercises();
+    return allExercises.filter(
+      (exercise) => exercise.exercise_id === exerciseId,
+    );
+  } catch (error) {
+    console.error("Error getting exercises by exercise_id:", error);
+    throw error;
+  }
+}
+
+// ==================== Deprecated functions (use Exercise functions instead) ====================
+
+/** @deprecated Use addExercise instead */
+export const addExerciseRecord = addExercise;
+
+/** @deprecated Use getAllExercises instead */
+export const getAllExerciseRecords = getAllExercises;
+
+/** @deprecated Use getExerciseById instead */
+export const getExerciseRecordById = getExerciseById;
+
+/** @deprecated Use getExercisesByExerciseId instead */
+export const getExerciseRecordsByExerciseId = getExercisesByExerciseId;
+
+/** @deprecated Use deleteExercise instead */
+export const deleteExerciseRecord = deleteExercise;
+
+/** @deprecated Use clearDatabase instead */
+export const clearExerciseRecordsDatabase = clearDatabase;
+
+// ==================== Routines functions ====================
 
 /**
- * Add a new exercise record to the database
+ * Map body parts to simplified versions (merge symmetric, exclude eyes)
  */
-export async function addExerciseRecord(
-  record: Omit<ExerciseRecord, "_id" | "_rev" | "createdAt" | "updatedAt">,
+const BODY_PART_MAP: Record<string, SimplifiedBodyPart | null> = {
+  nose: "nose",
+  left_eye: null,
+  right_eye: null,
+  left_ear: "ear",
+  right_ear: "ear",
+  left_shoulder: "shoulder",
+  right_shoulder: "shoulder",
+  left_elbow: "elbow",
+  right_elbow: "elbow",
+  left_wrist: "wrist",
+  right_wrist: "wrist",
+  left_hip: "hip",
+  right_hip: "hip",
+  left_knee: "knee",
+  right_knee: "knee",
+  left_ankle: "ankle",
+  right_ankle: "ankle",
+};
+
+/**
+ * Calculate routine stats from exercises
+ */
+export function calculateRoutineStats(exercises: Exercise[]): {
+  stats: Routine["stats"];
+  totalTime: number;
+} {
+  const bodyPartCounts: Record<SimplifiedBodyPart, number> = {
+    nose: 0,
+    ear: 0,
+    shoulder: 0,
+    elbow: 0,
+    wrist: 0,
+    hip: 0,
+    knee: 0,
+    ankle: 0,
+  };
+
+  const muscleGroupsSet = new Set<string>();
+  let totalTime = 0;
+
+  for (const exercise of exercises) {
+    // Count time
+    totalTime += exercise.duration ?? 30; // default 30 seconds
+
+    // Count muscle groups
+    if (exercise.muscle_groups) {
+      exercise.muscle_groups.forEach((mg) => muscleGroupsSet.add(mg));
+    }
+
+    // Count body parts from signals
+    if (exercise.signals) {
+      for (const signal of Object.values(exercise.signals)) {
+        for (const point of signal.points) {
+          const simplified = BODY_PART_MAP[point];
+          if (simplified) {
+            bodyPartCounts[simplified]++;
+          }
+        }
+      }
+    }
+  }
+
+  // Convert counts to percentages
+  const totalParts = Object.values(bodyPartCounts).reduce((a, b) => a + b, 0);
+  const bodyParts: Record<SimplifiedBodyPart, number> = {} as Record<
+    SimplifiedBodyPart,
+    number
+  >;
+
+  for (const [part, count] of Object.entries(bodyPartCounts)) {
+    bodyParts[part as SimplifiedBodyPart] =
+      totalParts > 0 ? Math.round((count / totalParts) * 100) : 0;
+  }
+
+  return {
+    stats: {
+      bodyParts,
+      muscleGroups: Array.from(muscleGroupsSet),
+    },
+    totalTime,
+  };
+}
+
+/**
+ * Add a new routine to the database
+ */
+export async function addRoutine(
+  routine: Omit<Routine, "_id" | "_rev" | "updatedAt">
 ) {
-  const doc: ExerciseRecord = {
-    ...record,
-    createdAt: Date.now(),
+  const doc: Routine = {
+    ...routine,
+    created_at: routine.created_at ?? new Date().toISOString(),
     updatedAt: Date.now(),
   };
 
   try {
-    const result = await exercisesRecordsDB.post(doc);
+    const result = await routinesDB.post(doc);
+    console.log("[addRoutine] Saved successfully with id:", result.id);
     return { success: true, id: result.id, rev: result.rev };
   } catch (error) {
-    console.error("Error adding exercise record:", error);
+    console.error("Error adding routine:", error);
     throw error;
   }
 }
 
 /**
- * Get all exercise records
+ * Get all routines
  */
-export async function getAllExerciseRecords(): Promise<ExerciseRecord[]> {
+export async function getAllRoutines(): Promise<Routine[]> {
   try {
-    const result = await exercisesRecordsDB.allDocs({ include_docs: true });
+    const result = await routinesDB.allDocs({ include_docs: true });
     return (
       result.rows
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((row: any) => row.doc as ExerciseRecord)
-        .filter(
-          (doc: ExerciseRecord | undefined): doc is ExerciseRecord => !!doc,
-        )
+        .map((row: any) => {
+          const doc = row.doc as Routine;
+          if (!doc) return doc;
+
+          // Backwards compatibility: if `items` missing, derive from legacy `exercises`
+          if (!doc.items && Array.isArray(doc.exercises)) {
+            doc.items = doc.exercises.map((exerciseId) => ({
+              exerciseId,
+              reps: 1,
+            }));
+          }
+
+          return doc;
+        })
+        .filter((doc: Routine | undefined): doc is Routine => !!doc)
     );
   } catch (error) {
-    console.error("Error getting exercise records:", error);
+    console.error("Error getting routines:", error);
     throw error;
   }
 }
 
 /**
- * Get an exercise record by ID
+ * Get a routine by ID
  */
-export async function getExerciseRecordById(
-  id: string,
-): Promise<ExerciseRecord> {
+export async function getRoutineById(id: string): Promise<Routine> {
   try {
-    const doc = await exercisesRecordsDB.get(id);
-    return doc as ExerciseRecord;
+    const doc = (await routinesDB.get(id)) as Routine;
+
+    if (doc && !doc.items && Array.isArray(doc.exercises)) {
+      doc.items = doc.exercises.map((exerciseId) => ({
+        exerciseId,
+        reps: 1,
+      }));
+    }
+
+    return doc;
   } catch (error) {
-    console.error("Error getting exercise record:", error);
+    console.error("Error getting routine:", error);
     throw error;
   }
 }
 
 /**
- * Get exercise records by exercise_id
+ * Update a routine
  */
-export async function getExerciseRecordsByExerciseId(
-  exerciseId: string,
-): Promise<ExerciseRecord[]> {
+export async function updateRoutine(id: string, updates: Partial<Routine>) {
   try {
-    const allRecords = await getAllExerciseRecords();
-    return allRecords.filter((record) => record.exercise_id === exerciseId);
+    const doc = await routinesDB.get(id);
+    const updated = {
+      ...doc,
+      ...updates,
+      updatedAt: Date.now(),
+    };
+    const result = await routinesDB.put(updated);
+    return { success: true, rev: result.rev };
   } catch (error) {
-    console.error("Error getting exercise records by exercise_id:", error);
+    console.error("Error updating routine:", error);
     throw error;
   }
 }
 
 /**
- * Delete an exercise record
+ * Delete a routine
  */
-export async function deleteExerciseRecord(id: string) {
+export async function deleteRoutine(id: string) {
   try {
-    const doc = await exercisesRecordsDB.get(id);
-    await exercisesRecordsDB.remove(doc);
+    const doc = await routinesDB.get(id);
+    await routinesDB.remove(doc);
     return { success: true };
   } catch (error) {
-    console.error("Error deleting exercise record:", error);
-    throw error;
-  }
-}
-
-/**
- * Clear the exercise records database
- */
-export async function clearExerciseRecordsDatabase() {
-  try {
-    const result = await exercisesRecordsDB.destroy();
-    return result;
-  } catch (error) {
-    console.error("Error clearing exercise records database:", error);
+    console.error("Error deleting routine:", error);
     throw error;
   }
 }

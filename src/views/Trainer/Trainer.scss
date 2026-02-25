@@ -1,0 +1,34 @@
+.trainer-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.trainer-view__ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.trainer-view__ui {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.trainer-view__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trainer-view__error {
+  margin-top: 0;
+  color: #b00020;
+  font-size: 13px;
+}

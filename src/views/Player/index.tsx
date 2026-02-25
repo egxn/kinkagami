@@ -1,8 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllExerciseRecords, ExerciseRecord } from "../../db/dbService";
-import { drawRecordedPose } from "../../utils/canvasDrawing";
+import { getAllExercises } from "../../db/dbService";
+import type { Exercise } from "../../types/exercise";
 import type { RecordingAngleEntry } from "../../utils/poseUtils";
+import { DebugFSM } from "../../components/DebugFSM";
+import Skeleton from "../../components/Skeleton";
 import "./Player.scss";
 
 const CANVAS_WIDTH = 640;
@@ -10,80 +12,64 @@ const CANVAS_HEIGHT = 480;
 
 export default function Player() {
   const navigate = useNavigate();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  const [records, setRecords] = useState<ExerciseRecord[]>([]);
-  const [selectedRecord, setSelectedRecord] = useState<ExerciseRecord | null>(null);
+  const [records, setRecords] = useState<Exercise[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<Exercise | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentAngles, setCurrentAngles] = useState<RecordingAngleEntry[]>([]);
+  const [showFSMDebug, setShowFSMDebug] = useState(false);
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
 
   // Load records on mount
   useEffect(() => {
+    const loadRecords = async () => {
+      const allRecords = await getAllExercises();
+      setRecords(allRecords);
+    };
     loadRecords();
   }, []);
 
-  const loadRecords = async () => {
-    const allRecords = await getAllExerciseRecords();
-    setRecords(allRecords);
-  };
-
-  const selectRecord = (record: ExerciseRecord) => {
-    if (isPlaying) {
-      stopPlayback();
-    }
-    setSelectedRecord(record);
-    setCurrentFrameIndex(0);
-    // Draw first frame with angles
-    if (record.recording_points.length > 0) {
-      const firstFrame = record.recording_points[0];
-      const angles = record.recording_angles?.length > 0
-        ? record.recording_angles[0]?.angles || []
-        : [];
-      setCurrentAngles(angles);
-      drawFrame(firstFrame.poses, angles);
-    }
-  };
-
-  const drawFrame = useCallback((poses: ExerciseRecord["recording_points"][0]["poses"], angles: RecordingAngleEntry[]) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Always draw both skeleton and angles (auto-centered)
-    drawRecordedPose(
-      ctx,
-      CANVAS_WIDTH,
-      CANVAS_HEIGHT,
-      poses,
-      angles
-    );
-  }, []);
-
-  const stopPlayback = useCallback(() => {
+  const stopPlayback = () => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
     setIsPlaying(false);
-  }, []);
+  };
 
-  const startPlayback = useCallback(() => {
+  const selectRecord = (record: Exercise) => {
+    if (isPlaying) {
+      stopPlayback();
+    }
+    setSelectedRecord(record);
+    setCurrentFrameIndex(0);
+    // Initialize angles for first frame
+    if (record.recording_points.length > 0) {
+      const firstFrame = record.recording_points[0];
+      const angles =
+        record.recording_angles?.length > 0
+          ? record.recording_angles[0]?.angles || []
+          : [];
+      setCurrentAngles(angles);
+      void firstFrame;
+    }
+  };
+
+  const startPlayback = () => {
     if (!selectedRecord || selectedRecord.recording_points.length === 0) return;
 
     setIsPlaying(true);
     const frames = selectedRecord.recording_points;
     const angleFrames = selectedRecord.recording_angles || [];
-    
+
     // Get base timestamp from first frame (in seconds)
     const baseTimestamp = frames[0].timestamp;
     let startIndex = currentFrameIndex;
-    
+
     // If at the end, restart from beginning
     if (startIndex >= frames.length - 1) {
       startIndex = 0;
@@ -93,7 +79,8 @@ export default function Player() {
     const startFrameTimestamp = frames[startIndex].timestamp;
     // Convert to milliseconds for performance.now() comparison
     const startOffsetMs = (startFrameTimestamp - baseTimestamp) * 1000;
-    startTimeRef.current = performance.now() - (startOffsetMs / playbackSpeed);
+    // eslint-disable-next-line react-hooks/purity -- performance.now() is only called from event handler
+    startTimeRef.current = performance.now() - startOffsetMs / playbackSpeed;
 
     const animate = (currentTime: number) => {
       // Calculate elapsed time in seconds
@@ -116,7 +103,6 @@ export default function Player() {
         setCurrentFrameIndex(frames.length - 1);
         const lastAngles = angleFrames[frames.length - 1]?.angles || [];
         setCurrentAngles(lastAngles);
-        drawFrame(frames[frames.length - 1].poses, lastAngles);
         stopPlayback();
         return;
       }
@@ -124,13 +110,12 @@ export default function Player() {
       setCurrentFrameIndex(frameIndex);
       const angles = angleFrames[frameIndex]?.angles || [];
       setCurrentAngles(angles);
-      drawFrame(frames[frameIndex].poses, angles);
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [selectedRecord, currentFrameIndex, playbackSpeed, drawFrame, stopPlayback]);
+  };
 
   const togglePlayback = () => {
     if (isPlaying) {
@@ -148,20 +133,12 @@ export default function Player() {
       const frame = selectedRecord.recording_points[index];
       const angles = selectedRecord.recording_angles?.[index]?.angles || [];
       setCurrentAngles(angles);
-      if (frame) {
-        drawFrame(frame.poses, angles);
-      }
+      void frame;
     }
   };
 
-  // Redraw current frame when record or frame changes
-  useEffect(() => {
-    if (selectedRecord && selectedRecord.recording_points[currentFrameIndex]) {
-      const frame = selectedRecord.recording_points[currentFrameIndex];
-      const angles = selectedRecord.recording_angles?.[currentFrameIndex]?.angles || [];
-      drawFrame(frame.poses, angles);
-    }
-  }, [selectedRecord, currentFrameIndex, drawFrame]);
+  const currentFramePoses =
+    selectedRecord?.recording_points?.[currentFrameIndex]?.poses ?? [];
 
   // Cleanup on unmount
   useEffect(() => {
@@ -172,18 +149,21 @@ export default function Player() {
     };
   }, []);
 
-  const getDuration = (record: ExerciseRecord) => {
+  const getDuration = (record: Exercise) => {
     if (record.recording_points.length < 2) return "0.0";
     const first = record.recording_points[0].timestamp;
-    const last = record.recording_points[record.recording_points.length - 1].timestamp;
+    const last =
+      record.recording_points[record.recording_points.length - 1].timestamp;
     // Timestamps are already in seconds
     return (last - first).toFixed(1);
   };
 
   const getCurrentTime = () => {
-    if (!selectedRecord || selectedRecord.recording_points.length === 0) return "0.0";
+    if (!selectedRecord || selectedRecord.recording_points.length === 0)
+      return "0.0";
     const first = selectedRecord.recording_points[0].timestamp;
-    const current = selectedRecord.recording_points[currentFrameIndex]?.timestamp || first;
+    const current =
+      selectedRecord.recording_points[currentFrameIndex]?.timestamp || first;
     // Timestamps are already in seconds
     return (current - first).toFixed(1);
   };
@@ -191,14 +171,21 @@ export default function Player() {
   return (
     <div className="player-container">
       <div className="player-header">
-        <button className="back-btn" onClick={() => navigate("/menu")}>
+        <button className="back-btn" onClick={() => navigate("/canvas")}>
           ← Back
         </button>
         <h1>Exercise Player</h1>
       </div>
 
       <div className="player-content">
-        <div className="exercise-list">
+        <div className={`exercise-list ${isListCollapsed ? "collapsed" : ""}`}>
+          <button
+            className="collapse-toggle"
+            onClick={() => setIsListCollapsed(!isListCollapsed)}
+            title={isListCollapsed ? "Expand list" : "Collapse list"}
+          >
+            {isListCollapsed ? "▶" : "◀"}
+          </button>
           <h3>Recorded Exercises</h3>
           {records.length === 0 ? (
             <div className="no-records">No recordings found</div>
@@ -211,7 +198,8 @@ export default function Player() {
               >
                 <span className="exercise-name">{record.name}</span>
                 <span className="exercise-info">
-                  {record.recording_points.length} frames • {getDuration(record)}s
+                  {record.recording_points.length} frames •{" "}
+                  {getDuration(record)}s
                 </span>
               </div>
             ))
@@ -221,11 +209,44 @@ export default function Player() {
         <div className="playback-area">
           <div className="canvas-wrapper">
             {selectedRecord ? (
-              <canvas
-                ref={canvasRef}
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-              />
+              <>
+                <Skeleton
+                  width={CANVAS_WIDTH}
+                  height={CANVAS_HEIGHT}
+                  poses={currentFramePoses}
+                  angles={currentAngles}
+                  opacity={1}
+                  colors={{ skeleton: "lime", keypoints: "red" }}
+                />
+                {currentAngles.length > 0 && (
+                  <div className="angles-overlay">
+                    <div className="angles-left">
+                      {currentAngles
+                        .filter((a) => a.name.toLowerCase().includes("left"))
+                        .map((angle) => (
+                          <div key={angle.name} className="angle-item">
+                            <span className="angle-name">
+                              {angle.name.replace(/_/g, " ").replace("left ", "")}
+                            </span>
+                            <span className="angle-value">{angle.value.toFixed(0)}°</span>
+                          </div>
+                        ))}
+                    </div>
+                    <div className="angles-right">
+                      {currentAngles
+                        .filter((a) => a.name.toLowerCase().includes("right"))
+                        .map((angle) => (
+                          <div key={angle.name} className="angle-item">
+                            <span className="angle-name">
+                              {angle.name.replace(/_/g, " ").replace("right ", "")}
+                            </span>
+                            <span className="angle-value">{angle.value.toFixed(0)}°</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <span className="no-selection">Select an exercise to play</span>
             )}
@@ -258,28 +279,41 @@ export default function Player() {
               <input
                 type="range"
                 min={0}
-                max={selectedRecord ? selectedRecord.recording_points.length - 1 : 0}
+                max={
+                  selectedRecord
+                    ? selectedRecord.recording_points.length - 1
+                    : 0
+                }
                 value={currentFrameIndex}
                 onChange={handleSliderChange}
                 disabled={!selectedRecord}
               />
               <span className="time-display">
-                {getCurrentTime()}s / {selectedRecord ? getDuration(selectedRecord) : 0}s
+                {getCurrentTime()}s /{" "}
+                {selectedRecord ? getDuration(selectedRecord) : 0}s
               </span>
             </div>
-
           </div>
 
-          {currentAngles.length > 0 && (
-            <div className="angle-legend">
-              <span className="legend-title">Current Angles:</span>
-              {currentAngles.map((angle) => (
-                <div key={angle.name} className="angle-item">
-                  <span className="angle-arc"></span>
-                  <span>{angle.name.replace(/_/g, " ")}:</span>
-                  <span className="angle-value">{angle.value.toFixed(0)}°</span>
-                </div>
-              ))}
+          {selectedRecord?.event_graph && selectedRecord?.completion && (
+            <div className="fsm-debug-section">
+              <button
+                className="toggle-fsm-btn"
+                onClick={() => setShowFSMDebug(!showFSMDebug)}
+              >
+                {showFSMDebug ? "Hide" : "Show"} FSM Debug
+              </button>
+              {showFSMDebug && (
+                <DebugFSM
+                  exercise={selectedRecord}
+                  isPlaying={isPlaying}
+                  progress={
+                    selectedRecord.recording_points.length > 1
+                      ? currentFrameIndex / (selectedRecord.recording_points.length - 1)
+                      : 0
+                  }
+                />
+              )}
             </div>
           )}
         </div>

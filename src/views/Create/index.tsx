@@ -1,9 +1,11 @@
 import { useState, useRef, useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import PoseContext from "../../context/PoseContext";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import { drawPosesOnCanvas } from "../../utils/canvasDrawing";
 import { calculateAllBodyAngles } from "../../utils/poseUtils";
-import { addExerciseRecord } from "../../db/dbService";
+import { addExercise } from "../../db/dbService";
+import { generateEventGraph } from "../../services/exerciseGenerator";
 import { useTranslation } from "react-i18next";
 import VideoRangeSlider from "../../components/VideoRangeSlider";
 import VideoSelector from "../../components/VideoSelector";
@@ -26,6 +28,7 @@ interface ExerciseMetadata {
 
 export default function Create() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { detector } = useContext(PoseContext) || {};
 
   // State
@@ -51,9 +54,74 @@ export default function Create() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(undefined);
+  const previewRequestRef = useRef<number>(undefined);
+  const isProcessingRef = useRef(false);
+  const timeRangeRef = useRef<[number, number]>([0, 0]);
+
+  // Keep timeRangeRef in sync
+  useEffect(() => {
+    timeRangeRef.current = timeRange;
+  }, [timeRange]);
 
   const addLog = (msg: string) => {
     setLogs((prev) => [msg, ...prev]);
+  };
+
+  // Preview skeleton detection (runs when video is paused/loaded)
+  const detectAndDrawPreview = async () => {
+    if (!videoRef.current || !detector || !canvasRef.current || isProcessingRef.current) return;
+    
+    try {
+      const poses = await detector.estimatePoses(videoRef.current);
+      
+      // Ensure canvas matches video dims
+      if (canvasRef.current.width !== videoRef.current.videoWidth) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+      }
+      
+      drawPosesOnCanvas(canvasRef.current, videoRef.current, poses);
+    } catch (err) {
+      console.error("Preview detection error:", err);
+    }
+  };
+
+  // Preview loop during normal video playback (not processing)
+  const startPreviewPlayback = () => {
+    if (isProcessingRef.current) return;
+    
+    const previewLoop = async () => {
+      if (!videoRef.current || !detector || !canvasRef.current) return;
+      if (videoRef.current.paused || videoRef.current.ended) return;
+      if (isProcessingRef.current) return;
+      
+      try {
+        const poses = await detector.estimatePoses(videoRef.current);
+        
+        if (canvasRef.current.width !== videoRef.current.videoWidth) {
+          canvasRef.current.width = videoRef.current.videoWidth;
+          canvasRef.current.height = videoRef.current.videoHeight;
+        }
+        
+        drawPosesOnCanvas(canvasRef.current, videoRef.current, poses);
+      } catch (err) {
+        console.error("Preview playback error:", err);
+      }
+      
+      // Continue loop if still playing and not processing
+      if (!videoRef.current.paused && !videoRef.current.ended && !isProcessingRef.current) {
+        previewRequestRef.current = requestAnimationFrame(previewLoop);
+      }
+    };
+    
+    previewLoop();
+  };
+
+  const stopPreviewPlayback = () => {
+    if (previewRequestRef.current) {
+      cancelAnimationFrame(previewRequestRef.current);
+      previewRequestRef.current = undefined;
+    }
   };
 
   const handleLoad = () => {
@@ -104,6 +172,39 @@ export default function Create() {
     }
   };
 
+  // Handler for when video data is loaded - detect skeleton on first frame
+  const handleVideoDataLoaded = async () => {
+    if (videoRef.current && detector) {
+      addLog("Video loaded, detecting skeleton preview...");
+      // Small delay to ensure video frame is ready
+      setTimeout(() => {
+        detectAndDrawPreview();
+      }, 100);
+    }
+  };
+
+  // Handler for seeking - update skeleton preview
+  const handleVideoSeeked = () => {
+    if (!isProcessingRef.current) {
+      detectAndDrawPreview();
+    }
+  };
+
+  // Handler for video pause - draw preview
+  const handleVideoPause = () => {
+    stopPreviewPlayback();
+    if (!isProcessingRef.current) {
+      detectAndDrawPreview();
+    }
+  };
+
+  // Handler for video play - start preview loop (only if not processing)
+  const handleVideoPlay = () => {
+    if (!isProcessingRef.current) {
+      startPreviewPlayback();
+    }
+  };
+
   // Validation
   const isFormValid = () => {
     return (
@@ -134,6 +235,24 @@ export default function Create() {
     }
   }, [videoUrl]);
 
+  // Start preview when detector becomes available and video is loaded
+  useEffect(() => {
+    if (detector && videoUrl && videoRef.current && !isProcessingRef.current) {
+      // Give time for video to be ready
+      const timeout = setTimeout(() => {
+        detectAndDrawPreview();
+      }, 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [detector, videoUrl]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopPreviewPlayback();
+    };
+  }, []);
+
   // Video processing loop
   const processFrame = async (
     _now: number,
@@ -148,8 +267,12 @@ export default function Create() {
       return;
     }
 
-    // Check if current frame is within the configured time range
-    if (metadata.mediaTime < timeRange[0] || metadata.mediaTime > timeRange[1]) {
+    // Check if current frame is within the configured time range (use ref for current value)
+    const [startTime, endTime] = timeRangeRef.current;
+    if (
+      metadata.mediaTime < startTime ||
+      metadata.mediaTime > endTime
+    ) {
       requestRef.current =
         videoRef.current.requestVideoFrameCallback(processFrame);
       return;
@@ -187,6 +310,7 @@ export default function Create() {
     } catch (err) {
       console.error(err);
       addLog(`Error processing frame: ${err}`);
+      isProcessingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -201,6 +325,11 @@ export default function Create() {
     addLog(
       `Time range: ${timeRange[0].toFixed(2)}s - ${timeRange[1].toFixed(2)}s`,
     );
+    
+    // Stop preview playback if running
+    stopPreviewPlayback();
+    
+    isProcessingRef.current = true;
     setIsProcessing(true);
     setCapturedData([]);
 
@@ -225,19 +354,19 @@ export default function Create() {
           )
             return;
 
-          // Check if current time is within range
+          // Check if current time is within range (use ref for current value)
+          const [startTime, endTime] = timeRangeRef.current;
           if (
-            videoRef.current.currentTime < timeRange[0] ||
-            videoRef.current.currentTime > timeRange[1]
+            videoRef.current.currentTime < startTime ||
+            videoRef.current.currentTime > endTime
           ) {
-            if (videoRef.current.currentTime > timeRange[1]) {
+            if (videoRef.current.currentTime > endTime) {
               // Stop if we've passed the end time
               videoRef.current.pause();
               return;
             }
             // Skip to next frame if before start time
-            if (!videoRef.current.paused)
-              requestAnimationFrame(fallbackLoop);
+            if (!videoRef.current.paused) requestAnimationFrame(fallbackLoop);
             return;
           }
 
@@ -260,20 +389,28 @@ export default function Create() {
       }
     } catch (e) {
       addLog(`Error starting playback: ${e}`);
+      isProcessingRef.current = false;
       setIsProcessing(false);
     }
   };
 
   // Stop when video ends
   const onVideoEnded = () => {
-    setIsProcessing(false);
-    const processedDuration = timeRange[1] - timeRange[0];
-    addLog(
-      `Processing finished. Captured ${capturedData.length} valid frames.`,
-    );
-    addLog(
-      `Processed range: ${timeRange[0].toFixed(2)}s - ${timeRange[1].toFixed(2)}s (${processedDuration.toFixed(2)}s)`,
-    );
+    // Stop preview playback
+    stopPreviewPlayback();
+    
+    // Only log processing results if we were actually processing
+    if (isProcessingRef.current) {
+      isProcessingRef.current = false;
+      setIsProcessing(false);
+      const processedDuration = timeRange[1] - timeRange[0];
+      addLog(
+        `Processing finished. Captured ${capturedData.length} valid frames.`,
+      );
+      addLog(
+        `Processed range: ${timeRange[0].toFixed(2)}s - ${timeRange[1].toFixed(2)}s (${processedDuration.toFixed(2)}s)`,
+      );
+    }
   };
 
   const handleSave = async () => {
@@ -288,16 +425,16 @@ export default function Create() {
     try {
       // Filter captured data based on time range
       const filteredData = capturedData.filter(
-        (frame) => frame.timestamp >= timeRange[0] && frame.timestamp <= timeRange[1]
+        (frame) =>
+          frame.timestamp >= timeRange[0] && frame.timestamp <= timeRange[1],
       );
 
       // Generate recording_angles: calculate body angles for each frame
       const recordingAngles = filteredData.map((frame) => {
         // Calculate angles for the first pose (primary person)
-        const angles = frame.poses.length > 0 
-          ? calculateAllBodyAngles(frame.poses[0])
-          : [];
-        
+        const angles =
+          frame.poses.length > 0 ? calculateAllBodyAngles(frame.poses[0]) : [];
+
         return {
           timestamp: frame.timestamp,
           angles,
@@ -306,6 +443,22 @@ export default function Create() {
 
       addLog(`Generated angles for ${recordingAngles.length} frames`);
 
+      // Generate event graph from recorded angles
+      const { signals, eventGraph, timeConstraints, completion } =
+        generateEventGraph(recordingAngles);
+
+      addLog(
+        `Generated event graph: ${eventGraph.nodes.length} nodes, ${eventGraph.edges.length} edges`,
+      );
+      addLog(`Detected ${Object.keys(signals).length} active signals: ${Object.keys(signals).join(", ") || "none"}`);
+      addLog(`Time constraints: ${timeConstraints.length}, Terminal nodes: ${completion.terminal_nodes.length}`);
+
+      // Debug: Log the generated data
+      console.log("Generated signals:", signals);
+      console.log("Generated eventGraph:", eventGraph);
+      console.log("Generated timeConstraints:", timeConstraints);
+      console.log("Generated completion:", completion);
+
       const recordData = {
         exercise_id: metadata.exercise_id,
         name: metadata.name,
@@ -313,13 +466,20 @@ export default function Create() {
         muscle_groups: metadata.muscle_groups.split(",").map((s) => s.trim()),
         difficulty: metadata.difficulty,
         instructions: metadata.instructions.filter((i) => i.trim() !== ""),
+        signals,
+        event_graph: eventGraph,
+        time_constraints: timeConstraints,
+        completion,
         recording_points: filteredData,
         recording_angles: recordingAngles,
         created_at: new Date().toISOString(),
       };
 
-      const result = await addExerciseRecord(recordData);
-      
+      // Debug: Log full record data before saving
+      console.log("Record data to save:", recordData);
+
+      const result = await addExercise(recordData);
+
       if (result.success) {
         addLog(`Saved to database with ID: ${result.id}`);
         addLog(t("create.log.saved"));
@@ -334,15 +494,20 @@ export default function Create() {
 
   return (
     <div className="create-view">
-      <h1>{t("create.title")}</h1>
+      <div className="create-header">
+        <h1>{t("create.title")}</h1>
+        <button className="goto-player-btn" onClick={() => navigate("/player")}>
+          {t("button.go_to_player") || "Go to Player"} →
+        </button>
+      </div>
 
       <div className="main-content">
         <div className="video-section">
-          <VideoSelector 
-            onSelect={(videoPath) => setInputUrl(videoPath)} 
+          <VideoSelector
+            onSelect={(videoPath) => setInputUrl(videoPath)}
             currentUrl={inputUrl}
           />
-          
+
           <div className="controls">
             <input
               type="text"
@@ -364,6 +529,10 @@ export default function Create() {
                   controls={!isProcessing}
                   onEnded={onVideoEnded}
                   onLoadedMetadata={handleVideoMetadataLoaded}
+                  onLoadedData={handleVideoDataLoaded}
+                  onSeeked={handleVideoSeeked}
+                  onPause={handleVideoPause}
+                  onPlay={handleVideoPlay}
                   crossOrigin="anonymous"
                   muted
                 />
@@ -403,11 +572,12 @@ export default function Create() {
                 capturedData.length === 0
                   ? "Process a video first to capture data"
                   : !isFormValid()
-                  ? t("create.log.fill_form")
-                  : t("button.save")
+                    ? t("create.log.fill_form")
+                    : t("button.save")
               }
             >
-              {isSaving ? t("button.saving") : t("button.save")} ({capturedData.length})
+              {isSaving ? t("button.saving") : t("button.save")} (
+              {capturedData.length})
             </button>
           </div>
           <div className="status-log">

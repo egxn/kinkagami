@@ -1,30 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
+import { RoutineContext } from "./RoutineContextDef";
+import type { RoutineItem } from "./RoutineContextDef";
+import type { Routine } from "../types/exercise";
 
-export interface RoutineItem {
-  id: string; // unique instance ID for the routine
-  exerciseId: string;
-  reps: number;
-  sets: number;
-}
-
-interface RoutineContextType {
-  routine: RoutineItem[];
-  addToRoutine: (exerciseId: string, reps?: number, sets?: number) => void;
-  removeFromRoutine: (id: string) => void;
-  reorderRoutine: (fromIndex: number, toIndex: number) => void;
-  updateRoutineItem: (id: string, updates: Partial<RoutineItem>) => void;
-}
-
-const RoutineContext = createContext<RoutineContextType | undefined>(undefined);
-
-export const useRoutine = () => {
-  const context = useContext(RoutineContext);
-  if (!context) {
-    throw new Error("useRoutine must be used within a RoutineProvider");
-  }
-  return context;
-};
+export {
+  RoutineContext,
+  type RoutineItem,
+  type RoutineContextType,
+} from "./RoutineContextDef";
 
 export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -39,9 +23,27 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
+  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(() => {
+    try {
+      const stored = localStorage.getItem("selected_routine");
+      return stored ? (JSON.parse(stored) as Routine) : null;
+    } catch (e) {
+      console.error("Failed to load selected routine from local storage", e);
+      return null;
+    }
+  });
+
   useEffect(() => {
     localStorage.setItem("user_routine", JSON.stringify(routine));
   }, [routine]);
+
+  useEffect(() => {
+    if (!selectedRoutine) {
+      localStorage.removeItem("selected_routine");
+      return;
+    }
+    localStorage.setItem("selected_routine", JSON.stringify(selectedRoutine));
+  }, [selectedRoutine]);
 
   const addToRoutine = (exerciseId: string, reps = 10, sets = 3) => {
     const newItem: RoutineItem = {
@@ -75,6 +77,8 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({
         removeFromRoutine,
         reorderRoutine,
         updateRoutineItem,
+        selectedRoutine,
+        setSelectedRoutine,
       }}
     >
       {children}

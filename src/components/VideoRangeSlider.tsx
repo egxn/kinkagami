@@ -55,7 +55,7 @@ export default function VideoRangeSlider({
         onChange(startTime, Math.min(duration, limitedTime));
       }
     },
-    [isDragging, duration, startTime, endTime, onChange, disabled]
+    [isDragging, duration, startTime, endTime, onChange, disabled],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -83,7 +83,7 @@ export default function VideoRangeSlider({
     };
   }, [isDragging, handleDrag, handleDragEnd]);
 
-  // Handle click on track to jump closest handle? 
+  // Handle click on track to jump closest handle?
   // For now, let's keep it simple: only dragging handles works.
 
   const startPercent = getPercentage(startTime);
@@ -99,7 +99,7 @@ export default function VideoRangeSlider({
         className="slider-track-active"
         style={{
           left: `${startPercent}%`,
-          width: `${endPercent - startPercent}%`
+          width: `${endPercent - startPercent}%`,
         }}
       />
 
