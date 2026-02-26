@@ -11,6 +11,36 @@
   line-height: 24px;
   font-weight: 400;
 
+  --kgm-button-loading-border: rgba(118, 196, 255, 0.96);
+  --kgm-button-loading-surface: rgba(30, 75, 122, 0.22);
+  --kgm-button-loading-gradient-1: rgba(29, 66, 102, 0.22);
+  --kgm-button-loading-gradient-2: rgba(43, 108, 171, 0.5);
+  --kgm-button-loading-gradient-3: rgba(96, 176, 255, 0.78);
+
+  --kgm-button-hover-border: rgba(74, 255, 168, 0.98);
+  --kgm-button-hover-surface: rgba(36, 128, 86, 0.26);
+  --kgm-button-hover-glow: 0 0 22px rgba(74, 255, 168, 0.38), inset 0 0 24px rgba(74, 255, 168, 0.16);
+  --kgm-button-hover-radial-1: rgba(171, 255, 212, 0.7);
+  --kgm-button-hover-radial-2: rgba(103, 255, 179, 0.42);
+  --kgm-button-hover-radial-3: rgba(45, 189, 120, 0.26);
+  --kgm-button-hover-radial-4: rgba(17, 97, 58, 0.06);
+
+  --kgm-button-focus-border: rgba(74, 255, 168, 0.95);
+  --kgm-button-focus-surface: rgba(74, 255, 168, 0.22);
+
+  --kgm-button-checkbox-hover-border: rgba(255, 210, 102, 0.98);
+  --kgm-button-checkbox-hover-surface: rgba(184, 130, 33, 0.2);
+  --kgm-button-checkbox-checked-border: rgba(88, 214, 141, 0.98);
+  --kgm-button-checkbox-checked-surface: rgba(42, 125, 78, 0.36);
+  --kgm-button-checkbox-checked-focus-border: rgba(80, 220, 255, 1);
+  --kgm-button-checkbox-checked-focus-surface: rgba(28, 114, 163, 0.46);
+  --kgm-button-checkbox-check-border: rgba(186, 255, 213, 0.95);
+  --kgm-button-checkbox-check-bg: rgba(40, 128, 78, 0.55);
+  --kgm-button-checkbox-check-text: rgba(236, 255, 244, 0.98);
+
+  --kgm-button-idle-border: rgba(255, 255, 255, 0.35);
+  --kgm-button-idle-surface: rgba(0, 0, 0, 0.45);
+
   color: #0f0f0f;
   background-color: transparent;
 
@@ -19,6 +49,38 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+}
+
+[data-kgm-theme="sunset"] {
+  --kgm-button-loading-border: rgba(255, 170, 120, 0.96);
+  --kgm-button-loading-surface: rgba(126, 60, 31, 0.24);
+  --kgm-button-loading-gradient-1: rgba(95, 38, 24, 0.22);
+  --kgm-button-loading-gradient-2: rgba(177, 90, 46, 0.52);
+  --kgm-button-loading-gradient-3: rgba(255, 175, 112, 0.8);
+
+  --kgm-button-hover-border: rgba(255, 228, 122, 0.98);
+  --kgm-button-hover-surface: rgba(158, 127, 33, 0.24);
+  --kgm-button-hover-glow: 0 0 22px rgba(255, 228, 122, 0.35), inset 0 0 24px rgba(255, 228, 122, 0.14);
+  --kgm-button-hover-radial-1: rgba(255, 244, 176, 0.72);
+  --kgm-button-hover-radial-2: rgba(255, 218, 114, 0.44);
+  --kgm-button-hover-radial-3: rgba(201, 151, 54, 0.28);
+  --kgm-button-hover-radial-4: rgba(94, 66, 16, 0.08);
+}
+
+[data-kgm-theme="ocean"] {
+  --kgm-button-loading-border: rgba(122, 223, 255, 0.96);
+  --kgm-button-loading-surface: rgba(22, 89, 118, 0.24);
+  --kgm-button-loading-gradient-1: rgba(20, 78, 104, 0.22);
+  --kgm-button-loading-gradient-2: rgba(39, 130, 171, 0.52);
+  --kgm-button-loading-gradient-3: rgba(117, 223, 255, 0.78);
+
+  --kgm-button-hover-border: rgba(128, 250, 255, 0.98);
+  --kgm-button-hover-surface: rgba(35, 135, 138, 0.24);
+  --kgm-button-hover-glow: 0 0 22px rgba(128, 250, 255, 0.38), inset 0 0 24px rgba(128, 250, 255, 0.16);
+  --kgm-button-hover-radial-1: rgba(183, 255, 255, 0.72);
+  --kgm-button-hover-radial-2: rgba(121, 245, 255, 0.46);
+  --kgm-button-hover-radial-3: rgba(59, 200, 210, 0.26);
+  --kgm-button-hover-radial-4: rgba(21, 108, 114, 0.08);
 }
 
 body,

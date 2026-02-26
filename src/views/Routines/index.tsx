@@ -1,28 +1,31 @@
 import "./Routines.scss";
 import { useNavigate } from "react-router-dom";
 import RoutineCard from "../../components/RoutineCard";
-import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 import { useRoutines } from "../../hooks/useRoutines";
 import type { Routine } from "../../types/exercise";
 import { useRoutine } from "../../context/useRoutine";
+import { logger } from "../../utils/logger";
+
+const INITIAL_ROUTINES_COUNT = 10;
 
 interface RoutinesViewProps {
   routines: Routine[];
   loading: boolean;
-  onDeleteRoutine?: (id: string) => void;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
-export function RoutinesView({
-  routines,
-  loading,
-  onDeleteRoutine,
-}: RoutinesViewProps) {
+export function RoutinesView({ routines, loading, error, onRetry }: RoutinesViewProps) {
   const navigate = useNavigate();
   const { setSelectedRoutine } = useRoutine();
-  const { displayedItems, sentinelRef, loadingMore } = useInfiniteScroll(
-    routines,
-    10,
-  );
+  const routinesToRender = routines.slice(0, INITIAL_ROUTINES_COUNT);
+
+  logger.log("RoutinesView", "Render state", {
+    loading,
+    hasError: !!error,
+    routinesCount: routines.length,
+    routinesToRenderCount: routinesToRender.length,
+  });
 
   return (
     <div className="routines-view">
@@ -33,11 +36,22 @@ export function RoutinesView({
 
         {loading ? (
           <div className="routines-view__loading">Cargando rutinas...</div>
-        ) : displayedItems.length === 0 ? (
+        ) : error ? (
+          <div className="routines-view__empty">
+            Error cargando rutinas: {error.message}
+            {onRetry ? (
+              <div>
+                <button type="button" onClick={onRetry}>
+                  Reintentar
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : routinesToRender.length === 0 ? (
           <div className="routines-view__empty">No hay rutinas guardadas</div>
         ) : (
           <div className="routines-view__grid">
-            {displayedItems.map((routine) => {
+            {routinesToRender.map((routine) => {
               const id = routine._id ?? routine.name;
               return (
                 <RoutineCard
@@ -47,19 +61,11 @@ export function RoutinesView({
                     setSelectedRoutine(routine);
                     navigate("/stack/session");
                   }}
-                  onDelete={() => {
-                    if (!routine._id) return;
-                    onDeleteRoutine?.(routine._id);
-                  }}
                 />
               );
             })}
           </div>
         )}
-
-        <div ref={sentinelRef} className="routines-view__sentinel">
-          {loadingMore && <span>Cargando más...</span>}
-        </div>
       </div>
 
       <button
@@ -68,11 +74,21 @@ export function RoutinesView({
       >
         Nueva rutina
       </button>
+
     </div>
   );
 }
 
 export default function Routines() {
-  const { routines, loading } = useRoutines();
-  return <RoutinesView routines={routines} loading={loading} />;
+  const { routines, loading, error, refreshRoutines } = useRoutines();
+  return (
+    <RoutinesView
+      routines={routines}
+      loading={loading}
+      error={error}
+      onRetry={() => {
+        void refreshRoutines();
+      }}
+    />
+  );
 }

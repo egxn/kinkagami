@@ -9,12 +9,15 @@ import {
 } from "../../db/dbService";
 import ExerciseCard from "../../components/ExerciseCard";
 import { logger } from "../../utils/logger";
-import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 import "./Exercises.scss";
 
-const PAGE_SIZE = 10;
+const INITIAL_EXERCISES_COUNT = 10;
 
-export default function Exercises() {
+interface ExercisesProps {
+  onRoutineCreated?: () => void | Promise<void>;
+}
+
+export default function Exercises({ onRoutineCreated }: ExercisesProps) {
   const navigate = useNavigate();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedRepsById, setSelectedRepsById] = useState<
@@ -30,8 +33,10 @@ export default function Exercises() {
   );
   const selectedCount = selectedIds.length;
 
-  const { displayedItems: displayedExercises, sentinelRef, loadingMore } =
-    useInfiniteScroll(exercises, PAGE_SIZE);
+  const initialExercises = useMemo(
+    () => exercises.slice(0, INITIAL_EXERCISES_COUNT),
+    [exercises],
+  );
 
   // Load exercises from database
   useEffect(() => {
@@ -106,6 +111,10 @@ export default function Exercises() {
         created_at: new Date().toISOString(),
       });
 
+      if (onRoutineCreated) {
+        await onRoutineCreated();
+      }
+
       logger.log(
         "Exercises",
         `Created routine with ${selectedCount} exercises`
@@ -150,13 +159,13 @@ export default function Exercises() {
       <div className="exercises-view__scroll">
         {loading ? (
           <div className="exercises-view__loading">Cargando ejercicios...</div>
-        ) : displayedExercises.length === 0 ? (
+        ) : initialExercises.length === 0 ? (
           <div className="exercises-view__empty">
             No hay ejercicios disponibles
           </div>
         ) : (
           <div className="exercises-view__grid">
-            {displayedExercises.map((exercise) => {
+            {initialExercises.map((exercise) => {
               const id = exercise._id || exercise.exercise_id || "";
               return (
                 <ExerciseCard
@@ -177,10 +186,6 @@ export default function Exercises() {
           </div>
         )}
 
-        {/* Sentinel for infinite scroll */}
-        <div ref={sentinelRef} className="exercises-view__sentinel">
-          {loadingMore && <span>Cargando más...</span>}
-        </div>
       </div>
 
       {/* Side panel */}

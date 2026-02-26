@@ -1,60 +1,48 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Button from "../../components/Button";
 import { logger } from "../../utils/logger";
 import usePoseContext from "../../context/usePoseContext";
 
 function Splash() {
   const navigate = useNavigate();
-  const [loadingText, setLoadingText] = useState("Loading...");
-  const { cameraError, cameraReady, modelError, modelLoading } =
-    usePoseContext();
+  const { cameraError, cameraReady, streamReady, videoRef } = usePoseContext();
 
-
-  // Animate loading text with cycling dots
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLoadingText((prev) => {
-        if (prev === "Loading") return "Loading.";
-        if (prev === "Loading.") return "Loading..";
-        if (prev === "Loading..") return "Loading...";
-        return "Loading";
-      });
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     logger.log(
       "Splash",
       `Camera - Ready: ${cameraReady}, Error: ${cameraError}`,
     );
-    logger.log(
-      "Splash",
-      `Model -  Ready: ${!modelLoading}, Error: ${modelError}`,
-    );
 
-    // Navigate to error if there are any errors
-    if (cameraError || modelError) {
+    if (cameraError) {
       logger.error("Splash", "Error detected, navigating to /error");
       navigate("/error");
       return;
     }
+  }, [cameraReady, cameraError, navigate]);
 
-    // Navigate to main once camera is ready (model can load in background)
-    if (cameraReady && !modelLoading) {
-      logger.log(
-        "Splash",
-        "Camera ready, navigating to /canvas (model loading in background)",
-      );
-      navigate("/stack");
-    }
-  }, [cameraReady, cameraError, modelError, navigate, modelLoading]);
+  const handleAction = () => {
+    logger.log("Splash", "Start action confirmed");
+    navigate("/stack/routines");
+  };
+
+  const handleDiscard = () => {
+    logger.log("Splash", "Start action discarded");
+  };
 
   return (
     <div className="splash-screen">
       <h1> 🦝 🪞 </h1>
-      <p> {loadingText} </p>
+      <Button
+        videoRef={videoRef}
+        streamReady={streamReady}
+        onAction={handleAction}
+        onDiscard={handleDiscard}
+        alignX="center"
+      >
+        <div>Start</div>
+      </Button>
     </div>
   );
 }

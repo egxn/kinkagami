@@ -6,13 +6,15 @@ import { useRoutines } from "../../hooks/useRoutines";
 import ScoreTrainerLayers from "./ScoreTrainerLayers";
 
 import "./Stack.scss";
+import Splash from "../Splash";
 
 export default function Stack() {
-  const { routines, loading, deleteRoutineData } = useRoutines();
+  const { routines, loading, error, refreshRoutines } = useRoutines();
 
   return (
     <div className="stack-container">
       <Routes>
+        <Route path="splash" element={<Splash />} />
         <Route path="session" element={<ScoreTrainerLayers />} />
 
         <Route
@@ -33,7 +35,10 @@ export default function Stack() {
               <RoutinesView
                 routines={routines}
                 loading={loading}
-                onDeleteRoutine={(id) => deleteRoutineData(id)}
+                error={error}
+                onRetry={() => {
+                  void refreshRoutines();
+                }}
               />
             </div>
           }
@@ -42,7 +47,11 @@ export default function Stack() {
           path="exercises"
           element={
             <div className="stack-layer">
-              <Exercises />
+              <Exercises
+                onRoutineCreated={() => {
+                  void refreshRoutines();
+                }}
+              />
             </div>
           }
         />

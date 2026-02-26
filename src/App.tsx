@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PoseProvider } from "./context/PoseContextProvider";
 import { RoutineProvider } from "./context/RoutineContext";
@@ -8,7 +8,6 @@ import Error from "./views/Error";
 import Models from "./views/Models";
 import Player from "./views/Player";
 import Settings from "./views/Settings";
-import Splash from "./views/Splash";
 import Stack from "./views/Stack";
 import Summary from "./views/Summary";
 
@@ -16,6 +15,17 @@ import "./App.css";
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const savedTheme = localStorage.getItem("kgm-theme");
+
+    if (savedTheme) {
+      root.setAttribute("data-kgm-theme", savedTheme);
+    } else {
+      root.setAttribute("data-kgm-theme", "ocean");
+    }
+  }, []);
 
   return (
     <PoseProvider videoRef={videoRef}>
@@ -45,9 +55,8 @@ function App() {
           >
             <HashRouter>
               <Routes>
-                <Route path="/" element={<Navigate to="/splash" replace />} />
+                <Route path="/" element={<Navigate to="/stack/splash" replace />} />
 
-                <Route path="/splash" element={<Splash />} />
                 <Route path="/stack/*" element={<Stack />} />
 
                 <Route path="/settings" element={<Settings />} />

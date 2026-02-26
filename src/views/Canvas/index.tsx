@@ -1,14 +1,32 @@
 import { useEffect, useCallback, memo, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
+import { useLocation } from "react-router-dom";
 import usePoseContext from "../../context/usePoseContext";
-import { usePoseDetection } from "../../hooks/usePoseDetection";
+import { useHandPose, usePoseDetection } from "../../hooks";
 import { logger } from "../../utils/logger";
 import Skeleton from "../../components/Skeleton";
 
 function Canvas() {
+  const location = useLocation();
   const { videoRef, stream, detector, modelLoading, streamReady } =
     usePoseContext();
+  const {
+    detector: handDetector,
+    isLoading: handModelLoading,
+    error: handModelError,
+  } = useHandPose();
   const [poses, setPoses] = useState<poseDetection.Pose[]>([]);
+
+  const isSplashRoute =
+    location.pathname === "/splash" || location.pathname.endsWith("/stack/splash");
+  const isRoutinesRoute =
+    location.pathname === "/stack/routines" || location.pathname.endsWith("/routines");
+  const isExercisesRoute =
+    location.pathname === "/stack/exercises" || location.pathname.endsWith("/exercises");
+  const useHandPoseRoute = isSplashRoute || isRoutinesRoute || isExercisesRoute;
+
+  const effectiveDetector = useHandPoseRoute ? null : detector;
+  const effectiveModelLoading = useHandPoseRoute ? true : modelLoading;
 
   // Handle poses detected
   const handlePosesDetected = useCallback(
@@ -22,13 +40,30 @@ function Canvas() {
 
   // Use pose detection hook
   usePoseDetection({
-    detector,
+    detector: effectiveDetector,
     videoRef,
-    modelLoading,
+    modelLoading: effectiveModelLoading,
     streamReady,
     onPosesDetected: handlePosesDetected,
-    debugTag: "MoveNet/Canvas",
+    debugTag: useHandPoseRoute ? "HandPosePreload/Canvas" : "MoveNet/Canvas",
   });
+
+  useEffect(() => {
+    if (!useHandPoseRoute) return;
+
+    logger.log("Canvas", "HandPose route detected: using HandPose model in Canvas", {
+      path: location.pathname,
+      handModelLoading,
+      hasHandDetector: !!handDetector,
+      handModelError,
+    });
+  }, [
+    useHandPoseRoute,
+    location.pathname,
+    handModelLoading,
+    handDetector,
+    handModelError,
+  ]);
 
   // Initialize video stream
   useEffect(() => {
@@ -78,7 +113,7 @@ function Canvas() {
         variant="video"
         autoSize
         videoRef={videoRef}
-        poses={poses}
+        poses={useHandPoseRoute ? [] : poses}
         opacity={1}
         colors={{ skeleton: "lime", keypoints: "red" }}
       />

@@ -1,3 +1,33 @@
+.exercise-card {
+  width: 100%;
+  min-height: 140px;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.exercise-card--selected {
+  outline: 2px solid rgba(76, 175, 80, 0.75);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.exercise-card__left {
+  width: 70%;
+  min-width: 0;
+}
+
+.exercise-card__right {
+  width: 30%;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 .exercise-card__title {
   margin: 0 0 6px 0;
   font-size: 1.1rem;
@@ -69,49 +99,21 @@
   color: #9fa8da;
 }
 
-.exercise-card__reps-control {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
 .exercise-card__reps-label {
   color: #ddd;
-  font-size: 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.exercise-card__reps-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.exercise-card__reps-btn {
-  width: 34px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+.exercise-card__reps-value {
   color: #fff;
-  cursor: pointer;
-  font-size: 16px;
+  font-size: 2rem;
+  font-weight: 800;
   line-height: 1;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
-.exercise-card__reps-input {
-  width: 64px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.2);
-  color: #fff;
-  text-align: center;
-  outline: none;
+.exercise-card__reps-hint {
+  color: #9cc5ff;
+  font-size: 0.8rem;
+  line-height: 1.1;
 }

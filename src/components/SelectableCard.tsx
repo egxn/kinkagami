@@ -21,12 +21,6 @@ export default function SelectableCard({
       className={`selectable-card ${selected ? "selectable-card--selected" : ""} ${className ?? ""}`}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (!onClick) return;
-        if (e.key === "Enter" || e.key === " ") onClick();
-      }}
     >
       <div className="selectable-card__content">{children}</div>
       {selected && <div className="selectable-card__check">✓</div>}

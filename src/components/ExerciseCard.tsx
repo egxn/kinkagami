@@ -1,5 +1,7 @@
 import type { Exercise } from "../types/exercise";
-import SelectableCard from "./SelectableCard";
+import Button from "./Button";
+import usePoseContext from "../context/usePoseContext";
+import { logger } from "../utils/logger";
 import "./ExerciseCard.scss";
 
 interface ExerciseCardProps {
@@ -17,76 +19,82 @@ export default function ExerciseCard({
   reps,
   onRepsChange,
 }: ExerciseCardProps) {
+  const { videoRef, streamReady } = usePoseContext();
+  const safeReps = Math.max(1, reps ?? exercise.reps ?? 1);
+
   return (
-    <SelectableCard selected={isSelected} onClick={onClick} className="exercise-card">
-      <h3 className="exercise-card__title">{exercise.name || "Sin nombre"}</h3>
-      <p className="exercise-card__description">
-        {exercise.description || "Sin descripción"}
-      </p>
-      <div className="exercise-card__meta">
-        {exercise.difficulty && (
-          <span
-            className={`exercise-card__difficulty exercise-card__difficulty--${exercise.difficulty}`}
-          >
-            {exercise.difficulty}
-          </span>
-        )}
-        {exercise.duration && (
-          <span className="exercise-card__duration">{exercise.duration}s</span>
-        )}
-        {exercise.reps && exercise.sets && (
-          <span className="exercise-card__reps">
-            {exercise.sets}x{exercise.reps}
-          </span>
-        )}
-      </div>
-      {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
-        <div className="exercise-card__muscles">
-          {exercise.muscle_groups.slice(0, 3).map((muscle, idx) => (
-            <span key={idx} className="exercise-card__muscle-tag">
-              {muscle}
-            </span>
-          ))}
-          {exercise.muscle_groups.length > 3 && (
-            <span className="exercise-card__muscle-tag">
-              +{exercise.muscle_groups.length - 3}
-            </span>
+    <Button
+      videoRef={videoRef}
+      streamReady={streamReady}
+      onAction={() => {
+        if (!isSelected) onClick();
+      }}
+      onDiscard={() => {
+        logger.log("ExerciseCard", "Exercise action discarded");
+        if (isSelected) onClick();
+      }}
+      onIncrease={() => {
+        if (!isSelected || !onRepsChange) return;
+        onRepsChange(safeReps + 1);
+      }}
+      onDecrease={() => {
+        if (!isSelected || !onRepsChange) return;
+        onRepsChange(Math.max(1, safeReps - 1));
+      }}
+      alignX="left"
+      mode="checkbox"
+      checked={isSelected}
+      style={{ width: "80%", justifyContent: "flex-start" }}
+    >
+      <div className={`exercise-card ${isSelected ? "exercise-card--selected" : ""}`}>
+        <div className="exercise-card__left">
+          <h3 className="exercise-card__title">{exercise.name || "Sin nombre"}</h3>
+          <p className="exercise-card__description">
+            {exercise.description || "Sin descripción"}
+          </p>
+          <div className="exercise-card__meta">
+            {exercise.difficulty && (
+              <span
+                className={`exercise-card__difficulty exercise-card__difficulty--${exercise.difficulty}`}
+              >
+                {exercise.difficulty}
+              </span>
+            )}
+            {exercise.duration && (
+              <span className="exercise-card__duration">{exercise.duration}s</span>
+            )}
+            {exercise.reps && exercise.sets && (
+              <span className="exercise-card__reps">
+                {exercise.sets}x{exercise.reps}
+              </span>
+            )}
+          </div>
+          {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
+            <div className="exercise-card__muscles">
+              {exercise.muscle_groups.slice(0, 3).map((muscle, idx) => (
+                <span key={idx} className="exercise-card__muscle-tag">
+                  {muscle}
+                </span>
+              ))}
+              {exercise.muscle_groups.length > 3 && (
+                <span className="exercise-card__muscle-tag">
+                  +{exercise.muscle_groups.length - 3}
+                </span>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      {isSelected && typeof reps === "number" && onRepsChange ? (
-        <div className="exercise-card__reps-control" onClick={(e) => e.stopPropagation()}>
-          <span className="exercise-card__reps-label">Reps</span>
-          <div className="exercise-card__reps-stepper">
-            <button
-              type="button"
-              className="exercise-card__reps-btn"
-              disabled={reps <= 1}
-              onClick={() => onRepsChange(Math.max(1, reps - 1))}
-            >
-              −
-            </button>
-            <input
-              className="exercise-card__reps-input"
-              type="number"
-              min={1}
-              value={reps}
-              onChange={(e) => {
-                const next = Number.parseInt(e.target.value || "1", 10);
-                onRepsChange(Number.isFinite(next) ? Math.max(1, next) : 1);
-              }}
-            />
-            <button
-              type="button"
-              className="exercise-card__reps-btn"
-              onClick={() => onRepsChange(reps + 1)}
-            >
-              +
-            </button>
-          </div>
+        <div className="exercise-card__right">
+          <div className="exercise-card__reps-label">Reps</div>
+          <div className="exercise-card__reps-value">{safeReps}</div>
+          {isSelected ? (
+            <div className="exercise-card__reps-hint">↑ subir · ↓ bajar</div>
+          ) : (
+            <div className="exercise-card__reps-hint">Selecciona para editar</div>
+          )}
         </div>
-      ) : null}
-    </SelectableCard>
+      </div>
+    </Button>
   );
 }
