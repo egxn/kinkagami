@@ -115,7 +115,7 @@ function Canvas() {
         videoRef={videoRef}
         poses={useHandPoseRoute ? [] : poses}
         opacity={1}
-        colors={{ skeleton: "lime", keypoints: "red" }}
+        poseModel="movenet"
       />
     </div>
   );

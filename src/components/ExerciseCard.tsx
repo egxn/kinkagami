@@ -8,19 +8,14 @@ interface ExerciseCardProps {
   exercise: Exercise;
   isSelected: boolean;
   onClick: () => void;
-  reps?: number;
-  onRepsChange?: (reps: number) => void;
 }
 
 export default function ExerciseCard({
   exercise,
   isSelected,
   onClick,
-  reps,
-  onRepsChange,
 }: ExerciseCardProps) {
   const { videoRef, streamReady } = usePoseContext();
-  const safeReps = Math.max(1, reps ?? exercise.reps ?? 1);
 
   return (
     <Button
@@ -31,22 +26,21 @@ export default function ExerciseCard({
       }}
       onDiscard={() => {
         logger.log("ExerciseCard", "Exercise action discarded");
-        if (isSelected) onClick();
-      }}
-      onIncrease={() => {
-        if (!isSelected || !onRepsChange) return;
-        onRepsChange(safeReps + 1);
-      }}
-      onDecrease={() => {
-        if (!isSelected || !onRepsChange) return;
-        onRepsChange(Math.max(1, safeReps - 1));
       }}
       alignX="left"
-      mode="checkbox"
-      checked={isSelected}
-      style={{ width: "80%", justifyContent: "flex-start" }}
+      style={{
+        width: "100%",
+        justifyContent: "flex-start",
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      }}
     >
       <div className={`exercise-card ${isSelected ? "exercise-card--selected" : ""}`}>
+        {isSelected ? (
+          <div className="exercise-card__badge" aria-hidden="true">
+            ✅
+          </div>
+        ) : null}
         <div className="exercise-card__left">
           <h3 className="exercise-card__title">{exercise.name || "Sin nombre"}</h3>
           <p className="exercise-card__description">
@@ -82,16 +76,6 @@ export default function ExerciseCard({
                 </span>
               )}
             </div>
-          )}
-        </div>
-
-        <div className="exercise-card__right">
-          <div className="exercise-card__reps-label">Reps</div>
-          <div className="exercise-card__reps-value">{safeReps}</div>
-          {isSelected ? (
-            <div className="exercise-card__reps-hint">↑ subir · ↓ bajar</div>
-          ) : (
-            <div className="exercise-card__reps-hint">Selecciona para editar</div>
           )}
         </div>
       </div>

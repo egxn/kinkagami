@@ -1,6 +1,7 @@
 import Score from "../Score";
 import Trainer from "../Trainer";
 import { useRoutine } from "../../context/useRoutine";
+import { SessionComparisonProvider } from "../../context/SessionComparisonContext";
 
 /**
  * Groups Score + Trainer while keeping Stack's `stack-layer` structure.
@@ -10,7 +11,7 @@ export default function ScoreTrainerLayers() {
   const { selectedRoutine } = useRoutine();
 
   return (
-    <>
+    <SessionComparisonProvider>
       <div
         className="stack-layer"
         data-selected-routine={selectedRoutine?._id ?? ""}
@@ -23,6 +24,6 @@ export default function ScoreTrainerLayers() {
       >
         <Trainer />
       </div>
-    </>
+    </SessionComparisonProvider>
   );
 }

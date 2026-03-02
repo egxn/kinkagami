@@ -4,7 +4,13 @@ import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import "@tensorflow/tfjs-backend-wasm";
 
+import { useModelVersions } from "./useModelVersions";
 import { logger } from "../utils/logger";
+import {
+  getHandPoseDetectorUrl,
+  getHandPoseLandmarkUrl,
+  type HandPoseVersion,
+} from "../utils/modelVersions";
 
 export interface HandPoseDetector {
   estimateHands: (input: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement) => Promise<unknown[]>;
@@ -20,6 +26,7 @@ interface UseHandPoseReturn {
 
 let sharedDetector: HandPoseDetector | null = null;
 let sharedInitPromise: Promise<HandPoseDetector> | null = null;
+let sharedInitConfigKey: string | null = null;
 let sharedInitError: string | null = null;
 let sharedStatus = "Initializing TensorFlow...";
 
@@ -31,10 +38,24 @@ const normalizeInitError = (errorMessage: string) => {
   return errorMessage;
 };
 
-const initializeSharedDetector = async (): Promise<HandPoseDetector> => {
-  if (sharedDetector) return sharedDetector;
-  if (sharedInitPromise) return sharedInitPromise;
+const initializeSharedDetector = async (
+  handposeVersion: HandPoseVersion,
+): Promise<HandPoseDetector> => {
+  const configKey = `handpose:${handposeVersion}`;
 
+  if (sharedDetector && sharedInitConfigKey === configKey) return sharedDetector;
+  if (sharedInitPromise && sharedInitConfigKey === configKey) return sharedInitPromise;
+
+  if (sharedDetector && sharedInitConfigKey !== configKey) {
+    try {
+      sharedDetector.dispose();
+    } catch {
+      // noop
+    }
+    sharedDetector = null;
+  }
+
+  sharedInitConfigKey = configKey;
   sharedInitPromise = (async () => {
     try {
       sharedStatus = "Configuring TensorFlow.js...";
@@ -57,16 +78,31 @@ const initializeSharedDetector = async (): Promise<HandPoseDetector> => {
         logger.log("useHandPose", `${currentBackend} backend already configured`);
       }
 
-      sharedStatus = "Loading HandPose model...";
+      sharedStatus = `Loading HandPose model (${handposeVersion})...`;
       logger.log("useHandPose", sharedStatus);
 
       const handPoseDetection = await import("@tensorflow-models/hand-pose-detection");
+
+      const detectorUrl = getHandPoseDetectorUrl(handposeVersion);
+      const landmarkUrl = getHandPoseLandmarkUrl(handposeVersion);
+
+      const detectorCheck = await fetch(detectorUrl, { method: "HEAD" });
+      if (!detectorCheck.ok) {
+        throw new Error(`Missing HandPose detector model at ${detectorUrl}`);
+      }
+
+      const landmarkCheck = await fetch(landmarkUrl, { method: "HEAD" });
+      if (!landmarkCheck.ok) {
+        throw new Error(`Missing HandPose landmark model at ${landmarkUrl}`);
+      }
 
       const loadedDetector = await handPoseDetection.createDetector(
         handPoseDetection.SupportedModels.MediaPipeHands,
         {
           runtime: "tfjs",
-          modelType: "lite",
+          modelType: handposeVersion,
+          detectorModelUrl: detectorUrl,
+          landmarkModelUrl: landmarkUrl,
         },
       );
 
@@ -92,6 +128,9 @@ const initializeSharedDetector = async (): Promise<HandPoseDetector> => {
 
 export const useHandPose = (): UseHandPoseReturn => {
   const detectorRef = useRef<HandPoseDetector | null>(sharedDetector);
+  const {
+    config: { handpose: handposeVersion },
+  } = useModelVersions();
   const [detector, setDetector] = useState<HandPoseDetector | null>(sharedDetector);
   const [isLoading, setIsLoading] = useState(!sharedDetector && !sharedInitError);
   const [error, setError] = useState<string | null>(sharedInitError);
@@ -115,7 +154,7 @@ export const useHandPose = (): UseHandPoseReturn => {
       setStatus(sharedStatus);
 
       try {
-        const loadedDetector = await initializeSharedDetector();
+        const loadedDetector = await initializeSharedDetector(handposeVersion);
         if (!mounted) return;
 
         detectorRef.current = loadedDetector;
@@ -139,7 +178,7 @@ export const useHandPose = (): UseHandPoseReturn => {
       detectorRef.current = null;
       setDetector(null);
     };
-  }, []);
+  }, [handposeVersion]);
 
   return {
     detector,

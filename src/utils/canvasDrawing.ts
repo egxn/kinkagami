@@ -2,9 +2,21 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 import { logger } from "./logger";
 import type { RecordingAngleEntry } from "./poseUtils";
 
-// Color constants
-const KEYPOINT_COLOR = "red";
-const SKELETON_COLOR = "lime";
+export type PoseModelKind = "movenet" | "posenet" | "blazepose" | "auto";
+
+interface ModelColors {
+  skeleton: string;
+  keypoints: string;
+}
+
+const MODEL_COLORS: Record<Exclude<PoseModelKind, "auto">, ModelColors> = {
+  movenet: { skeleton: "#00ff7f", keypoints: "#ff4d4f" },
+  posenet: { skeleton: "#40a9ff", keypoints: "#ffa940" },
+  blazepose: { skeleton: "#00d4ff", keypoints: "#ffd666" },
+};
+
+const DEFAULT_MODEL: Exclude<PoseModelKind, "auto"> = "movenet";
+
 const ANGLE_COLOR = "#00BFFF"; // Deep Sky Blue for angles
 const ANGLE_TEXT_COLOR = "#FFD700"; // Gold for angle values
 const VISIBILITY_THRESHOLD = 0.1;
@@ -15,20 +27,59 @@ const isFiniteNumber = (value: unknown): value is number =>
 const normalizedScore = (score: number | undefined) =>
   isFiniteNumber(score) ? score : 1;
 
-const isVisibleKeypoint = (kp: poseDetection.Keypoint) =>
+const isVisibleKeypoint = (
+  kp: poseDetection.Keypoint,
+  threshold: number = VISIBILITY_THRESHOLD,
+) =>
   isFiniteNumber(kp.x) &&
   isFiniteNumber(kp.y) &&
-  normalizedScore(kp.score) > VISIBILITY_THRESHOLD;
+  normalizedScore(kp.score) >= threshold;
 
-const getAdjacentPairsForPose = (keypointCount: number): [number, number][] => {
+const getVisibilityThresholdForModel = (
+  model: Exclude<PoseModelKind, "auto">,
+): number => (model === "blazepose" ? 0 : VISIBILITY_THRESHOLD);
+
+const inferModelFromPose = (
+  pose: poseDetection.Pose | undefined,
+): Exclude<PoseModelKind, "auto"> => {
+  const keypointCount = pose?.keypoints?.length ?? 0;
+  if (keypointCount >= 33) return "blazepose";
+  return DEFAULT_MODEL;
+};
+
+const resolveModelKind = (
+  model: PoseModelKind | undefined,
+  pose: poseDetection.Pose | undefined,
+): Exclude<PoseModelKind, "auto"> => {
+  if (!model || model === "auto") {
+    return inferModelFromPose(pose);
+  }
+
+  return model;
+};
+
+const getAdjacentPairsForPose = (
+  keypointCount: number,
+  modelKind: Exclude<PoseModelKind, "auto">,
+): [number, number][] => {
   const model =
-    keypointCount > 20
+    keypointCount > 20 || modelKind === "blazepose"
       ? poseDetection.SupportedModels.BlazePose
-      : poseDetection.SupportedModels.MoveNet;
+      : modelKind === "posenet"
+        ? poseDetection.SupportedModels.PoseNet
+        : poseDetection.SupportedModels.MoveNet;
 
   return poseDetection.util
     .getAdjacentPairs(model)
     .map(([i, j]) => [i, j] as [number, number]);
+};
+
+const getModelColors = (
+  model: PoseModelKind | undefined,
+  pose: poseDetection.Pose | undefined,
+): ModelColors => {
+  const kind = resolveModelKind(model, pose);
+  return MODEL_COLORS[kind] ?? MODEL_COLORS[DEFAULT_MODEL];
 };
 
 // Helper function to draw a single keypoint
@@ -37,7 +88,7 @@ export const drawKeypoint = (
   x: number,
   y: number,
   label: string,
-  color: string = KEYPOINT_COLOR,
+  color: string,
 ) => {
   ctx.beginPath();
   ctx.arc(x, y, 5, 0, 2 * Math.PI);
@@ -54,13 +105,17 @@ export const drawConnections = (
   ctx: CanvasRenderingContext2D,
   keypoints: poseDetection.Keypoint[],
   adjacentPairs: [number, number][],
-  color: string = SKELETON_COLOR,
+  color: string,
+  visibilityThreshold: number = VISIBILITY_THRESHOLD,
 ) => {
   adjacentPairs.forEach(([i, j]) => {
     const kp1 = keypoints[i];
     const kp2 = keypoints[j];
 
-    if (isVisibleKeypoint(kp1) && isVisibleKeypoint(kp2)) {
+    if (
+      isVisibleKeypoint(kp1, visibilityThreshold) &&
+      isVisibleKeypoint(kp2, visibilityThreshold)
+    ) {
       ctx.beginPath();
       ctx.moveTo(kp1.x, kp1.y);
       ctx.lineTo(kp2.x, kp2.y);
@@ -130,6 +185,7 @@ export const drawPosesOnCanvas = (
     opacity?: number;
     skeletonColor?: string;
     keypointColor?: string;
+    poseModel?: PoseModelKind;
     fitMode?: "fill" | "cover" | "contain";
     renderWidth?: number;
     renderHeight?: number;
@@ -150,8 +206,6 @@ export const drawPosesOnCanvas = (
   ctx.clearRect(0, 0, renderWidth, renderHeight);
 
   const opacity = options?.opacity ?? 1;
-  const skeletonColor = options?.skeletonColor ?? SKELETON_COLOR;
-  const keypointColor = options?.keypointColor ?? KEYPOINT_COLOR;
   const fitMode = options?.fitMode ?? "fill";
 
   ctx.save();
@@ -179,12 +233,19 @@ export const drawPosesOnCanvas = (
   );
 
   poses.forEach((pose) => {
-    const visibleKeypoints = pose.keypoints.filter(isVisibleKeypoint);
+    const autoColors = getModelColors(options?.poseModel, pose);
+    const skeletonColor = options?.skeletonColor ?? autoColors.skeleton;
+    const keypointColor = options?.keypointColor ?? autoColors.keypoints;
+    const modelKind = resolveModelKind(options?.poseModel, pose);
+    const visibilityThreshold = getVisibilityThresholdForModel(modelKind);
+    const visibleKeypoints = pose.keypoints.filter((kp) =>
+      isVisibleKeypoint(kp, visibilityThreshold),
+    );
     logger.log("Canvas", `Pose has ${visibleKeypoints.length} visible keypoints`);
 
     // Draw keypoints
     pose.keypoints.forEach((keypoint) => {
-      if (isVisibleKeypoint(keypoint)) {
+      if (isVisibleKeypoint(keypoint, visibilityThreshold)) {
         const x = keypoint.x * scaleX + offsetX;
         const y = keypoint.y * scaleY + offsetY;
         drawKeypoint(ctx, x, y, keypoint.name || "", keypointColor);
@@ -192,7 +253,10 @@ export const drawPosesOnCanvas = (
     });
 
     // Draw connections
-    const adjacentKeyPoints = getAdjacentPairsForPose(pose.keypoints.length);
+    const adjacentKeyPoints = getAdjacentPairsForPose(
+      pose.keypoints.length,
+      modelKind,
+    );
 
     const scaledKeypoints = pose.keypoints.map((kp) => ({
       ...kp,
@@ -200,7 +264,13 @@ export const drawPosesOnCanvas = (
       y: kp.y * scaleY + offsetY,
     }));
 
-    drawConnections(ctx, scaledKeypoints, adjacentKeyPoints, skeletonColor);
+    drawConnections(
+      ctx,
+      scaledKeypoints,
+      adjacentKeyPoints,
+      skeletonColor,
+      visibilityThreshold,
+    );
   });
 
   ctx.restore();
@@ -247,8 +317,9 @@ export const drawRecordedPose = (
   canvasHeight: number,
   poses: poseDetection.Pose[],
   angles?: RecordingAngleEntry[],
-  skeletonColor: string = SKELETON_COLOR,
-  keypointColor: string = KEYPOINT_COLOR,
+  skeletonColor?: string,
+  keypointColor?: string,
+  poseModel: PoseModelKind = "auto",
 ) => {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
@@ -280,8 +351,17 @@ export const drawRecordedPose = (
     (bbox.minY - paddingY) * scaleToFit;
 
   poses.forEach((pose) => {
+    const autoColors = getModelColors(poseModel, pose);
+    const resolvedSkeletonColor = skeletonColor ?? autoColors.skeleton;
+    const resolvedKeypointColor = keypointColor ?? autoColors.keypoints;
+    const modelKind = resolveModelKind(poseModel, pose);
+    const visibilityThreshold = getVisibilityThresholdForModel(modelKind);
+
     // Draw connections first (behind keypoints)
-    const adjacentKeyPoints = getAdjacentPairsForPose(pose.keypoints.length);
+    const adjacentKeyPoints = getAdjacentPairsForPose(
+      pose.keypoints.length,
+      modelKind,
+    );
 
     const scaledKeypoints = pose.keypoints.map((kp) => ({
       ...kp,
@@ -289,14 +369,20 @@ export const drawRecordedPose = (
       y: kp.y * scaleToFit + offsetY,
     }));
 
-    drawConnections(ctx, scaledKeypoints, adjacentKeyPoints, skeletonColor);
+    drawConnections(
+      ctx,
+      scaledKeypoints,
+      adjacentKeyPoints,
+      resolvedSkeletonColor,
+      visibilityThreshold,
+    );
 
     // Draw keypoints
     pose.keypoints.forEach((keypoint) => {
-      if (isVisibleKeypoint(keypoint)) {
+      if (isVisibleKeypoint(keypoint, visibilityThreshold)) {
         const x = keypoint.x * scaleToFit + offsetX;
         const y = keypoint.y * scaleToFit + offsetY;
-        drawKeypoint(ctx, x, y, "", keypointColor);
+        drawKeypoint(ctx, x, y, "", resolvedKeypointColor);
       }
     });
 

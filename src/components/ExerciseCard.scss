@@ -1,31 +1,40 @@
 .exercise-card {
   width: 100%;
-  min-height: 140px;
+  min-height: 508px;
   display: flex;
+  flex-direction: column;
   gap: 12px;
   align-items: stretch;
+  position: relative;
 }
 
 .exercise-card--selected {
-  outline: 2px solid rgba(76, 175, 80, 0.75);
-  outline-offset: 4px;
   border-radius: 8px;
 }
 
+.exercise-card__badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .exercise-card__left {
-  width: 70%;
+  width: 100%;
   min-width: 0;
 }
 
 .exercise-card__right {
-  width: 30%;
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
-  padding-left: 12px;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
-  gap: 6px;
+  gap: 10px;
+  margin-top: auto;
 }
 
 .exercise-card__title {
@@ -107,13 +116,35 @@
 
 .exercise-card__reps-value {
   color: #fff;
-  font-size: 2rem;
+  font-size: 2.3rem;
   font-weight: 800;
   line-height: 1;
 }
 
-.exercise-card__reps-hint {
-  color: #9cc5ff;
-  font-size: 0.8rem;
-  line-height: 1.1;
+.exercise-card__reps-body {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.exercise-card__reps-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 42px;
+}
+
+.exercise-card__reps-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
 }

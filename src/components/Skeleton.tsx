@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Pose } from "@tensorflow-models/pose-detection";
 import type { RecordingAngleEntry } from "../utils/poseUtils";
-import { drawPosesOnCanvas, drawRecordedPose } from "../utils/canvasDrawing";
+import {
+  drawPosesOnCanvas,
+  drawRecordedPose,
+  type PoseModelKind,
+} from "../utils/canvasDrawing";
 import type { Exercise } from "../types/exercise";
 import "./Skeleton.scss";
 
@@ -45,6 +49,7 @@ export interface SkeletonProps {
 
   opacity?: number;
   colors?: SkeletonColors;
+  poseModel?: PoseModelKind;
 }
 
 const DEFAULT_WIDTH = 640;
@@ -63,6 +68,7 @@ export default function Skeleton({
   frameIndex,
   opacity = 1,
   colors,
+  poseModel = "auto",
 }: SkeletonProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -134,6 +140,7 @@ export default function Skeleton({
         opacity,
         skeletonColor,
         keypointColor,
+        poseModel,
         fitMode: "cover",
         renderWidth: displayW,
         renderHeight: displayH,
@@ -158,6 +165,7 @@ export default function Skeleton({
       centeredAngles,
       skeletonColor,
       keypointColor,
+      poseModel,
     );
     ctx.restore();
   }, [

@@ -8,10 +8,14 @@ import {
   getExerciseById,
 } from "../../db/dbService";
 import ExerciseCard from "../../components/ExerciseCard";
+import CardLayout from "../../components/CardLayout";
+import Button from "../../components/Button";
+import usePoseContext from "../../context/usePoseContext";
+import { usePagedCarousel } from "../../hooks";
 import { logger } from "../../utils/logger";
 import "./Exercises.scss";
 
-const INITIAL_EXERCISES_COUNT = 10;
+const EXERCISES_PER_PAGE = 3;
 
 interface ExercisesProps {
   onRoutineCreated?: () => void | Promise<void>;
@@ -19,13 +23,22 @@ interface ExercisesProps {
 
 export default function Exercises({ onRoutineCreated }: ExercisesProps) {
   const navigate = useNavigate();
+  const { videoRef, streamReady } = usePoseContext();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedRepsById, setSelectedRepsById] = useState<
     Record<string, number>
   >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const {
+    pageItems: visibleExercises,
+    startIndex,
+    hasPrevious,
+    hasNext,
+    transitionDirection,
+    goPrevious,
+    goNext,
+  } = usePagedCarousel(exercises, EXERCISES_PER_PAGE);
 
   const selectedIds = useMemo(
     () => Object.keys(selectedRepsById),
@@ -33,10 +46,11 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
   );
   const selectedCount = selectedIds.length;
 
-  const initialExercises = useMemo(
-    () => exercises.slice(0, INITIAL_EXERCISES_COUNT),
-    [exercises],
-  );
+  const visibleSlots = [
+    visibleExercises[0] ?? null,
+    visibleExercises[1] ?? null,
+    visibleExercises[2] ?? null,
+  ] as const;
 
   // Load exercises from database
   useEffect(() => {
@@ -55,6 +69,53 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
 
     loadExercises();
   }, []);
+
+  const slotNodes = visibleSlots.map((exercise) =>
+    exercise ? (
+      <ExerciseCard
+        exercise={exercise}
+        isSelected={(exercise._id || exercise.exercise_id || "") in selectedRepsById}
+        onClick={() => handleExerciseClick(exercise._id || exercise.exercise_id || "")}
+      />
+    ) : null,
+  );
+
+  const actionSlotNodes = visibleSlots.map((exercise) => {
+    if (!exercise) return null;
+
+    const id = exercise._id || exercise.exercise_id || "";
+    if (!id || !(id in selectedRepsById)) return null;
+    const currentReps = Math.max(1, selectedRepsById[id] ?? exercise.reps ?? 1);
+
+    return (
+      <Button
+        videoRef={videoRef}
+        streamReady={streamReady}
+        onAction={() => {
+          setSelectedRepsById((prev) => {
+            if (!(id in prev)) return prev;
+            return { ...prev, [id]: Math.max(1, prev[id] + 1) };
+          });
+        }}
+        onDiscard={() =>
+          logger.log("Exercises", "Increment reps action discarded", {
+            exerciseId: id,
+          })
+        }
+        alignX="center"
+        style={{
+          width: "100%",
+          height: "100%",
+          minHeight: 0,
+          borderTop: "none",
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        }}
+      >
+        <div>Reps: {currentReps} (+)</div>
+      </Button>
+    );
+  });
 
   // Toggle exercise selection
   const handleExerciseClick = (exerciseId: string | undefined) => {
@@ -102,7 +163,7 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
         name: `Rutina ${new Date().toLocaleDateString()}`,
         description: `${selectedExercises.length} ejercicios`,
         exercises: selectedIds,
-        items: selectedIds.map((exerciseId) => ({
+        items: selectedIds.map((exerciseId: string) => ({
           exerciseId,
           reps: Math.max(1, selectedRepsById[exerciseId] ?? 1),
         })),
@@ -122,7 +183,6 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
 
       // Clear selection after saving
       setSelectedRepsById({});
-      setPanelOpen(false);
       navigate("/stack/routines");
     } catch (error) {
       logger.error("Exercises", "Error creating routine:", error);
@@ -131,118 +191,37 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
     }
   };
 
-  const selectedExerciseSummaries = useMemo(() => {
-    return selectedIds
-      .map((id) => {
-        const ex = exercises.find((e) => e._id === id || e.exercise_id === id);
-        return {
-          id,
-          name: ex?.name ?? "Sin nombre",
-          reps: selectedRepsById[id] ?? 1,
-        };
-      })
-      .filter(Boolean);
-  }, [exercises, selectedIds, selectedRepsById]);
-
   return (
-    <div className="exercises-view">
-      <div className="exercises-view__header">
-        <button
-          type="button"
-          className="exercises-view__routine-btn"
-          onClick={() => setPanelOpen((v) => !v)}
-        >
-          Rutina {selectedCount > 0 ? `(${selectedCount})` : ""}
-        </button>
-      </div>
-
-      <div className="exercises-view__scroll">
-        {loading ? (
-          <div className="exercises-view__loading">Cargando ejercicios...</div>
-        ) : initialExercises.length === 0 ? (
-          <div className="exercises-view__empty">
-            No hay ejercicios disponibles
-          </div>
-        ) : (
-          <div className="exercises-view__grid">
-            {initialExercises.map((exercise) => {
-              const id = exercise._id || exercise.exercise_id || "";
-              return (
-                <ExerciseCard
-                  key={id}
-                  exercise={exercise}
-                  isSelected={id in selectedRepsById}
-                  onClick={() => handleExerciseClick(id)}
-                  reps={selectedRepsById[id]}
-                  onRepsChange={(nextReps) => {
-                    setSelectedRepsById((prev) => {
-                      if (!(id in prev)) return prev;
-                      return { ...prev, [id]: Math.max(1, nextReps) };
-                    });
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-
-      </div>
-
-      {/* Side panel */}
-      {panelOpen && (
-        <div className="exercises-view__panel" role="dialog" aria-label="Rutina en progreso">
-          <div className="exercises-view__panel-header">
-            <h2>Rutina en progreso</h2>
-            <button
-              type="button"
-              className="exercises-view__panel-close"
-              onClick={() => setPanelOpen(false)}
-            >
-              ×
-            </button>
-          </div>
-
-          {selectedCount === 0 ? (
-            <div className="exercises-view__panel-empty">No hay ejercicios seleccionados</div>
-          ) : (
-            <div className="exercises-view__panel-list">
-              {selectedExerciseSummaries.map((item) => (
-                <div key={item.id} className="exercises-view__panel-item">
-                  <div className="exercises-view__panel-item-main">
-                    <div className="exercises-view__panel-item-title">{item.name}</div>
-                    <div className="exercises-view__panel-item-meta">Reps: {item.reps}</div>
-                  </div>
-                  <button
-                    type="button"
-                    className="exercises-view__panel-remove"
-                    onClick={() => {
-                      setSelectedRepsById((prev) => {
-                        const next = { ...prev };
-                        delete next[item.id];
-                        return next;
-                      });
-                    }}
-                    aria-label="Quitar ejercicio"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="exercises-view__panel-footer">
-            <button
-              type="button"
-              className="exercises-view__create-btn"
-              onClick={handleCreateRoutine}
-              disabled={saving || selectedCount === 0}
-            >
-              {saving ? "Guardando..." : "Crear"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    <CardLayout
+      className="exercises-view"
+      title="Descripción"
+      loading={loading}
+      isEmpty={visibleExercises.length === 0}
+      loadingMessage="Cargando ejercicios..."
+      emptyMessage="No hay ejercicios disponibles"
+      errorPrefix="Error cargando ejercicios:"
+      hasPrevious={hasPrevious}
+      hasNext={hasNext}
+      onPrevious={goPrevious}
+      onNext={goNext}
+      slots={slotNodes}
+      actionSlots={actionSlotNodes}
+      transitionDirection={transitionDirection}
+      transitionKey={startIndex}
+      navSlotWidth={220}
+      cardSlotFlex={1.2}
+      cardSlotHeightPercent={78}
+      actionSlotHeightPercent={22}
+      navButtonSize={200}
+      footerButtonLabel={saving ? "Guardando..." : `Crear Rutina (${selectedCount})`}
+      footerButtonOnAction={() => {
+        void handleCreateRoutine();
+      }}
+      footerButtonOnDiscard={() => logger.log("Exercises", "Create routine action discarded")}
+      footerButtonClassName="exercises-view__create-btn"
+      footerButtonWidth="80%"
+      footerButtonMinHeight={112}
+      footerButtonDisabled={saving || selectedCount === 0}
+    />
   );
 }

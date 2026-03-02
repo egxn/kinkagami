@@ -36,6 +36,24 @@ export const validateExercise = (
     }
   }
 
+  if (exercise.grid_validation) {
+    if (!Number.isFinite(exercise.grid_validation.rows) || exercise.grid_validation.rows < 2) {
+      errors.push("grid_validation.rows must be a number >= 2");
+    }
+    if (!Number.isFinite(exercise.grid_validation.cols) || exercise.grid_validation.cols < 2) {
+      errors.push("grid_validation.cols must be a number >= 2");
+    }
+    if (!Array.isArray(exercise.grid_validation.keypoints)) {
+      errors.push("grid_validation.keypoints must be an array");
+    }
+    if (!exercise.grid_validation.cell_sequence_by_keypoint || typeof exercise.grid_validation.cell_sequence_by_keypoint !== "object") {
+      errors.push("grid_validation.cell_sequence_by_keypoint must be an object");
+    }
+    if (!exercise.grid_validation.total_transitions_by_keypoint || typeof exercise.grid_validation.total_transitions_by_keypoint !== "object") {
+      errors.push("grid_validation.total_transitions_by_keypoint must be an object");
+    }
+  }
+
   // TODO: Add deeper validation for graph integrity (dangling edges, etc.)
 
   return { valid: errors.length === 0, errors };

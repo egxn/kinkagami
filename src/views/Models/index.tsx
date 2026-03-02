@@ -3,8 +3,18 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 
 import Skeleton from "../../components/Skeleton";
 import usePoseContext from "../../context/usePoseContext";
-import { useBlazePose, useHandPose, usePoseDetection } from "../../hooks";
+import {
+  useBlazePose,
+  useHandPose,
+  useModelVersions,
+  usePoseDetection,
+} from "../../hooks";
 import { logger } from "../../utils/logger";
+import type {
+  BlazePoseVersion,
+  HandPoseVersion,
+  MoveNetVersion,
+} from "../../utils/modelVersions";
 
 type ModelOption = "movenet" | "blazepose" | "handpose";
 
@@ -49,7 +59,7 @@ function PoseModelCanvas({
         videoRef={videoRef}
         poses={poses}
         opacity={1}
-        colors={{ skeleton: "lime", keypoints: "red" }}
+        poseModel="auto"
       />
       <p style={{ marginTop: 8 }}>
         {modelLoading && "Cargando modelo..."}
@@ -219,6 +229,10 @@ export default function Models() {
     streamReady,
     videoRef,
   } = usePoseContext();
+  const {
+    config: modelVersions,
+    updateConfig: updateModelVersions,
+  } = useModelVersions();
 
   const [selectedModel, setSelectedModel] = useState<ModelOption>("blazepose");
 
@@ -308,6 +322,56 @@ export default function Models() {
 
       <div
         style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <label htmlFor="movenet-version">MoveNet versión</label>
+        <select
+          id="movenet-version"
+          value={modelVersions.movenet}
+          onChange={(e) =>
+            updateModelVersions({ movenet: e.target.value as MoveNetVersion })
+          }
+          style={{ padding: "8px 10px" }}
+        >
+          <option value="lightning">lightning (liviano)</option>
+          <option value="thunder">thunder</option>
+        </select>
+
+        <label htmlFor="blazepose-version">BlazePose versión</label>
+        <select
+          id="blazepose-version"
+          value={modelVersions.blazepose}
+          onChange={(e) =>
+            updateModelVersions({ blazepose: e.target.value as BlazePoseVersion })
+          }
+          style={{ padding: "8px 10px" }}
+        >
+          <option value="lite">lite (liviano)</option>
+          <option value="full">full</option>
+          <option value="heavy">heavy</option>
+        </select>
+
+        <label htmlFor="handpose-version">HandPose versión</label>
+        <select
+          id="handpose-version"
+          value={modelVersions.handpose}
+          onChange={(e) =>
+            updateModelVersions({ handpose: e.target.value as HandPoseVersion })
+          }
+          style={{ padding: "8px 10px" }}
+        >
+          <option value="lite">lite (liviano)</option>
+          <option value="full">full</option>
+        </select>
+      </div>
+
+      <div
+        style={{
           position: "absolute",
           top: 56,
           left: 16,
@@ -349,6 +413,9 @@ export default function Models() {
         }}
       >
         Validando: {selectedLabel}
+        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>
+          MoveNet: {modelVersions.movenet} · BlazePose: {modelVersions.blazepose} · HandPose: {modelVersions.handpose}
+        </div>
       </div>
     </div>
   );

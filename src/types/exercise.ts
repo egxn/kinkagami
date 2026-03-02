@@ -58,6 +58,17 @@ export interface CompletionCriteria {
   terminal_nodes: string[];
 }
 
+export interface GridValidationDefinition {
+  version: 1;
+  rows: number;
+  cols: number;
+  keypoints: BodyPart[];
+  min_confidence: number;
+  source_frame_count: number;
+  cell_sequence_by_keypoint: Record<string, number[]>;
+  total_transitions_by_keypoint: Record<string, number>;
+}
+
 export interface RecordingPoint {
   timestamp: number;
   poses: Pose[];
@@ -82,12 +93,14 @@ export interface Exercise {
   instructions?: string[];
   signals?: Record<string, SignalDef>;
   event_graph?: EventGraph;
+  grid_validation?: GridValidationDefinition;
   time_constraints?: TimeConstraint[];
   completion?: CompletionCriteria;
   created_at: string;
   duration?: number;
   recording_angles: RecordingAngle[];
   recording_points: RecordingPoint[];
+  tutor_points?: RecordingPoint[];
   reps?: number;
   sets?: number;
   updatedAt: number;

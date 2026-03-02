@@ -36,6 +36,7 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hasAutoFittedRef = useRef(false);
   const [zoom, setZoom] = useState(1);
   const [fitHeight, setFitHeight] = useState<number | null>(null);
 
@@ -49,19 +50,28 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
   };
   const handleFitToView = () => {
     const canvas = canvasRef.current;
+    const scrollContainer = scrollContainerRef.current;
     if (!canvas) return;
+    if (!scrollContainer) return;
 
-    // Calculate the height needed to show the full canvas at fit zoom
-    const containerWidth = scrollContainerRef.current?.clientWidth ?? 800;
-    const scaleX = (containerWidth - 40) / canvas.width; // 40px for padding
-    const fitZoom = Math.min(scaleX, 1); // Don't zoom beyond 100%
-    const clampedZoom = Math.max(MIN_ZOOM, Math.round(fitZoom * 10) / 10);
-    
-    // Calculate the required height to show full canvas
-    const requiredHeight = canvas.height * clampedZoom + 60; // 60px for controls + padding
-    
+    const viewportWidth = Math.max(1, scrollContainer.clientWidth - 20);
+    const viewportHeight = Math.max(1, scrollContainer.clientHeight - 20);
+
+    const scaleX = viewportWidth / Math.max(1, canvas.width);
+    const scaleY = viewportHeight / Math.max(1, canvas.height);
+    const fitZoom = Math.min(scaleX, scaleY, MAX_ZOOM);
+    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom));
+
+    setFitHeight(null);
     setZoom(clampedZoom);
-    setFitHeight(Math.max(300, requiredHeight));
+
+    requestAnimationFrame(() => {
+      const scaledWidth = canvas.width * clampedZoom;
+      const scaledHeight = canvas.height * clampedZoom;
+      const left = Math.max(0, (scaledWidth - scrollContainer.clientWidth) / 2);
+      const top = Math.max(0, (scaledHeight - scrollContainer.clientHeight) / 2);
+      scrollContainer.scrollTo({ left, top, behavior: "smooth" });
+    });
   };
 
   // Compute layout once when exercise changes
@@ -133,8 +143,35 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       sortedNodeIds.push(...layer);
     });
 
-    return { nodeMap, edges, layers, sortedNodeIds };
+    const nodeTimings = sortedNodeIds.map((nodeId) => {
+      const node = nodeMap.get(nodeId);
+      const durationMs = Math.max(80, node?.hold_ms ?? 150);
+      return { nodeId, durationMs };
+    });
+
+    const totalTimelineMs = nodeTimings.reduce(
+      (sum, item) => sum + item.durationMs,
+      0,
+    );
+
+    return { nodeMap, edges, layers, sortedNodeIds, nodeTimings, totalTimelineMs };
   }, [exercise]);
+
+  useEffect(() => {
+    hasAutoFittedRef.current = false;
+  }, [exercise._id, exercise.name]);
+
+  useEffect(() => {
+    if (hasAutoFittedRef.current) return;
+    if (!layoutData) return;
+
+    const t = setTimeout(() => {
+      handleFitToView();
+      hasAutoFittedRef.current = true;
+    }, 0);
+
+    return () => clearTimeout(t);
+  }, [layoutData]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -155,23 +192,24 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       return;
     }
 
-    const { nodeMap, edges, layers, sortedNodeIds } = layoutData;
+    const { nodeMap, edges, layers, sortedNodeIds, nodeTimings, totalTimelineMs } =
+      layoutData;
 
-    // Calculate dimensions - HORIZONTAL layout
+    // Calculate dimensions - VERTICAL layout
     const nodeWidth = 120;
     const nodeHeight = 50;
-    const layerSpacing = 180; // horizontal spacing between layers
-    const nodeSpacing = 80; // vertical spacing between nodes in same layer
+    const layerSpacing = 140; // vertical spacing between layers
+    const nodeSpacing = 160; // horizontal spacing between nodes in same layer
     const padding = 60;
 
-    // Find max nodes in any layer for height calculation (handle sparse arrays)
+    // Find max nodes in any layer for width calculation (handle sparse arrays)
     const validLayers = layers.filter((l) => l && l.length > 0);
     const maxNodesInLayer = validLayers.length > 0 
       ? Math.max(...validLayers.map((l) => l.length)) 
       : 1;
     
-    const canvasWidth = Math.max(800, validLayers.length * layerSpacing + padding * 2);
-    const canvasHeight = Math.max(300, maxNodesInLayer * nodeSpacing + padding * 2);
+    const canvasWidth = Math.max(800, maxNodesInLayer * nodeSpacing + padding * 2);
+    const canvasHeight = Math.max(320, validLayers.length * layerSpacing + padding * 2);
 
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -186,7 +224,7 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       }
     }
 
-    // Calculate positions - HORIZONTAL layout (layers left to right)
+    // Calculate positions - VERTICAL layout (layers top to bottom)
     nodeMap.forEach((n) => {
       const layerNodes = layers[n.layer!];
       if (!layerNodes) {
@@ -194,13 +232,13 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
         return;
       }
       const indexInLayer = layerNodes.indexOf(n.id);
-      const layerHeightTotal = layerNodes.length * nodeSpacing;
-      const startY = (canvasHeight - layerHeightTotal) / 2 + nodeSpacing / 2;
+      const layerWidthTotal = layerNodes.length * nodeSpacing;
+      const startX = (canvasWidth - layerWidthTotal) / 2 + nodeSpacing / 2;
 
-      // Use visual index for X position (to avoid gaps from sparse array)
+      // Use visual index for Y position (to avoid gaps from sparse array)
       const visualLayerIndex = layerToVisualIndex.get(n.layer!) ?? 0;
-      n.x = padding + visualLayerIndex * layerSpacing + nodeWidth / 2;
-      n.y = startY + indexInLayer * nodeSpacing;
+      n.x = startX + indexInLayer * nodeSpacing;
+      n.y = padding + visualLayerIndex * layerSpacing + nodeHeight / 2;
     });
 
     // --- Drawing ---
@@ -208,24 +246,32 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
     ctx.fillStyle = "#161b22";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid lines for visual reference
+    // Draw grid lines for visual reference (layer separators)
     ctx.strokeStyle = "#21262d";
     ctx.lineWidth = 1;
     for (let i = 0; i < validLayers.length; i++) {
-      const x = padding + i * layerSpacing;
+      const y = padding + i * layerSpacing;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvasHeight);
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvasWidth, y);
       ctx.stroke();
     }
 
-    // Determine active/visited nodes based on progress (0 to 1)
-    // Map progress to node index: progress 0 = node 0, progress 1 = last node
-    const totalNodes = sortedNodeIds.length;
-    const currentNodeIdx = Math.min(
-      Math.floor(progress * totalNodes),
-      totalNodes - 1
-    );
+    // Determine active/visited nodes based on timeline derived from hold_ms
+    const safeProgress = Math.max(0, Math.min(1, progress));
+    const elapsedTimelineMs = safeProgress * Math.max(1, totalTimelineMs);
+
+    let accumulatedMs = 0;
+    let currentNodeIdx = 0;
+    for (let i = 0; i < nodeTimings.length; i++) {
+      accumulatedMs += nodeTimings[i].durationMs;
+      if (elapsedTimelineMs <= accumulatedMs) {
+        currentNodeIdx = i;
+        break;
+      }
+      currentNodeIdx = i;
+    }
+
     const activeNodeId = sortedNodeIds[currentNodeIdx] || null;
     const visitedNodeIds = new Set(sortedNodeIds.slice(0, currentNodeIdx));
 
@@ -236,10 +282,10 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
 
       if (from.x === undefined || to.x === undefined) return;
 
-      const fromX = from.x + nodeWidth / 2;
-      const fromY = from.y ?? 0;
-      const toX = to.x - nodeWidth / 2;
-      const toY = to.y ?? 0;
+      const fromX = from.x ?? 0;
+      const fromY = (from.y ?? 0) + nodeHeight / 2;
+      const toX = to.x ?? 0;
+      const toY = (to.y ?? 0) - nodeHeight / 2;
 
       // Check if this edge is "active" (from visited to current)
       const isActive =
@@ -252,13 +298,13 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       ctx.strokeStyle = isActive ? COLORS.edgeActive : COLORS.edge;
       ctx.lineWidth = isActive ? 3 : 2;
 
-      const controlPointOffset = Math.abs(toY - fromY) > 10 ? 50 : 30;
+      const controlPointOffset = Math.abs(toX - fromX) > 10 ? 55 : 35;
       ctx.moveTo(fromX, fromY);
       ctx.bezierCurveTo(
-        fromX + controlPointOffset,
-        fromY,
-        toX - controlPointOffset,
-        toY,
+        fromX,
+        fromY + controlPointOffset,
+        toX,
+        toY - controlPointOffset,
         toX,
         toY
       );
@@ -266,7 +312,7 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
 
       // Arrowhead
       const arrowSize = 8;
-      const angle = Math.atan2(toY - fromY, toX - (toX - controlPointOffset));
+      const angle = Math.atan2(toY - fromY, toX - fromX);
       ctx.fillStyle = isActive ? COLORS.edgeActive : COLORS.edge;
       ctx.beginPath();
       ctx.moveTo(toX, toY);
@@ -376,6 +422,13 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
         style={fitHeight ? { maxHeight: fitHeight, minHeight: fitHeight } : undefined}
       >
         <div className="zoom-controls">
+          <button
+            className="fit-space-btn"
+            onClick={handleFitToView}
+            title="Ajustar al espacio disponible"
+          >
+            Ajustar
+          </button>
           <button onClick={handleFitToView} title="Fit to view">
             ⊡
           </button>

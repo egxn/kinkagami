@@ -1,0 +1,42 @@
+.score-overlay {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 25;
+  width: min(220px, 30vw);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(12, 14, 18, 0.44);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  pointer-events: none;
+}
+
+.score-overlay--right {
+  left: auto;
+  right: 14px;
+}
+
+.score-overlay__title {
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.score-overlay__value {
+  margin-top: 4px;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.score-overlay__meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.85);
+}

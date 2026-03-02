@@ -17,6 +17,86 @@ export type ExerciseRecord = Exercise;
 export const exercisesDB = new PouchDB("exercises");
 export const routinesDB = new PouchDB("routines");
 
+const exerciseJsonModules = import.meta.glob<{ default: Record<string, unknown> }>(
+  "./exercises/*.json",
+);
+
+let seedExercisesPromise: Promise<void> | null = null;
+
+const mapExerciseJsonToDoc = (
+  exerciseData: Record<string, unknown>,
+): Omit<Exercise, "_id" | "_rev" | "updatedAt"> => ({
+  exercise_id:
+    typeof exerciseData.exercise_id === "string" ? exerciseData.exercise_id : undefined,
+  name: typeof exerciseData.name === "string" ? exerciseData.name : undefined,
+  description:
+    typeof exerciseData.description === "string" ? exerciseData.description : undefined,
+  muscle_groups: Array.isArray(exerciseData.muscle_groups)
+    ? (exerciseData.muscle_groups as string[])
+    : undefined,
+  difficulty:
+    typeof exerciseData.difficulty === "string" ? exerciseData.difficulty : undefined,
+  instructions: Array.isArray(exerciseData.instructions)
+    ? (exerciseData.instructions as string[])
+    : undefined,
+  signals: exerciseData.signals as Exercise["signals"],
+  event_graph: exerciseData.event_graph as Exercise["event_graph"],
+  grid_validation: exerciseData.grid_validation as Exercise["grid_validation"],
+  time_constraints: exerciseData.time_constraints as Exercise["time_constraints"],
+  completion: exerciseData.completion as Exercise["completion"],
+  sets: typeof exerciseData.sets === "number" ? exerciseData.sets : undefined,
+  reps: typeof exerciseData.reps === "number" ? exerciseData.reps : undefined,
+  duration: typeof exerciseData.duration === "number" ? exerciseData.duration : undefined,
+  recording_angles: Array.isArray(exerciseData.recording_angles)
+    ? (exerciseData.recording_angles as RecordingAngle[])
+    : [],
+  recording_points: Array.isArray(exerciseData.recording_points)
+    ? (exerciseData.recording_points as RecordingPoint[])
+    : [],
+  tutor_points: Array.isArray(exerciseData.tutor_points)
+    ? (exerciseData.tutor_points as RecordingPoint[])
+    : Array.isArray(exerciseData.tutorPoints)
+      ? (exerciseData.tutorPoints as RecordingPoint[])
+    : [],
+  created_at: new Date().toISOString(),
+});
+
+async function ensureSeedExercisesIfEmpty(): Promise<void> {
+  if (seedExercisesPromise) {
+    await seedExercisesPromise;
+    return;
+  }
+
+  seedExercisesPromise = (async () => {
+    const existing = await exercisesDB.allDocs({ include_docs: false, limit: 1 });
+    if (existing.rows.length > 0) return;
+
+    const modulePaths = Object.keys(exerciseJsonModules).sort();
+    if (modulePaths.length === 0) {
+      console.warn("No exercise JSON files found for initial seed.");
+      return;
+    }
+
+    for (const modulePath of modulePaths) {
+      try {
+        const module = await exerciseJsonModules[modulePath]();
+        const exerciseData = module.default;
+        if (!exerciseData || typeof exerciseData !== "object") continue;
+
+        await addExercise(mapExerciseJsonToDoc(exerciseData));
+      } catch (error) {
+        console.error(`Error seeding exercise from ${modulePath}:`, error);
+      }
+    }
+  })();
+
+  try {
+    await seedExercisesPromise;
+  } finally {
+    seedExercisesPromise = null;
+  }
+}
+
 /**
  * Load an exercise from JSON located in src/db/exercises/
  *
@@ -82,6 +162,7 @@ export async function importExercisesFromJSON(exerciseFileNames: string[]) {
           instructions: exerciseData.instructions,
           signals: exerciseData.signals,
           event_graph: exerciseData.event_graph,
+          grid_validation: exerciseData.grid_validation,
           time_constraints: exerciseData.time_constraints,
           completion: exerciseData.completion,
           sets: exerciseData.sets,
@@ -129,6 +210,7 @@ export async function addExercise(
     ...exercise,
     recording_angles: exercise.recording_angles ?? [],
     recording_points: exercise.recording_points ?? [],
+    tutor_points: exercise.tutor_points ?? [],
     created_at: exercise.created_at ?? new Date().toISOString(),
     updatedAt: Date.now(),
   };
@@ -155,6 +237,7 @@ export async function addExercise(
  */
 export async function getAllExercises(): Promise<Exercise[]> {
   try {
+    await ensureSeedExercisesIfEmpty();
     const result = await exercisesDB.allDocs({ include_docs: true });
     return (
       result.rows
@@ -473,6 +556,41 @@ export async function deleteRoutine(id: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting routine:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all routines from the routines database
+ */
+export async function clearRoutinesDatabase() {
+  try {
+    const all = await routinesDB.allDocs({ include_docs: true });
+    const docsToDelete = all.rows
+      .map((row: { doc?: unknown }) => row.doc)
+      .filter(
+        (doc: unknown): doc is { _id: string; _rev: string } =>
+          !!doc &&
+          typeof doc === "object" &&
+          "_id" in doc &&
+          "_rev" in doc &&
+          typeof (doc as { _id?: unknown })._id === "string" &&
+          typeof (doc as { _rev?: unknown })._rev === "string",
+      )
+      .map((doc: { _id: string; _rev: string }) => ({
+        _id: doc._id,
+        _rev: doc._rev,
+        _deleted: true,
+      }));
+
+    if (docsToDelete.length === 0) {
+      return { success: true, deletedCount: 0 };
+    }
+
+    await routinesDB.bulkDocs(docsToDelete);
+    return { success: true, deletedCount: docsToDelete.length };
+  } catch (error) {
+    console.error("Error clearing routines database:", error);
     throw error;
   }
 }

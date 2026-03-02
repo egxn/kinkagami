@@ -9,6 +9,7 @@ interface RoutineCardProps {
   isSelected?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onDiscard?: () => void;
 }
 
 export default function RoutineCard({
@@ -16,6 +17,7 @@ export default function RoutineCard({
   isSelected,
   onClick,
   onDoubleClick,
+  onDiscard,
 }: RoutineCardProps) {
   const { videoRef, streamReady } = usePoseContext();
   const count = routine.items?.length ?? routine.exercises?.length ?? 0;
@@ -26,9 +28,22 @@ export default function RoutineCard({
       videoRef={videoRef}
       streamReady={streamReady}
       onAction={handleAction}
-      onDiscard={() => logger.log("RoutineCard", "Routine action discarded")}
+      requireSecondFistForAction
+      onDiscard={() => {
+        if (onDiscard) {
+          onDiscard();
+          return;
+        }
+        logger.log("RoutineCard", "Routine action discarded");
+      }}
       alignX="left"
-      style={{ width: "80%", justifyContent: "flex-start" }}
+      style={{
+        width: "100%",
+        justifyContent: "flex-start",
+        alignItems: "flex-start",
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      }}
     >
       <div className={`routine-card ${isSelected ? "routine-card--selected" : ""}`}>
         <h3 className="routine-card__title">{routine.name || "Sin nombre"}</h3>

@@ -10,6 +10,7 @@ import Player from "./views/Player";
 import Settings from "./views/Settings";
 import Stack from "./views/Stack";
 import Summary from "./views/Summary";
+import HandCursorOverlay from "./components/HandCursorOverlay";
 
 import "./App.css";
 
@@ -30,6 +31,7 @@ function App() {
   return (
     <PoseProvider videoRef={videoRef}>
       <RoutineProvider>
+        <HandCursorOverlay />
         <div
           style={{
             height: "100vh",

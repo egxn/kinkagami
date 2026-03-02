@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Routine } from "../types/exercise";
 import {
   addRoutine,
+  clearRoutinesDatabase,
   deleteRoutine,
   getAllRoutines,
   routinesDB,
@@ -49,6 +50,7 @@ export interface UseRoutinesResult {
   addNewRoutine: (routine: Omit<Routine, "_id" | "_rev" | "updatedAt">) => Promise<void>;
   updateRoutineData: (id: string, updates: Partial<Routine>) => Promise<void>;
   deleteRoutineData: (id: string) => Promise<void>;
+  clearAllRoutinesData: () => Promise<number>;
   refreshRoutines: () => Promise<void>;
 }
 
@@ -204,6 +206,24 @@ export function useRoutines(): UseRoutinesResult {
     [refreshRoutines],
   );
 
+  const clearAllRoutinesData = useCallback(async () => {
+    try {
+      if (isMountedRef.current) {
+        setError(null);
+      }
+
+      const result = await clearRoutinesDatabase();
+      await refreshRoutines();
+      return result.deletedCount;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      if (isMountedRef.current) {
+        setError(error);
+      }
+      throw error;
+    }
+  }, [refreshRoutines]);
+
   return {
     routines,
     loading,
@@ -211,6 +231,7 @@ export function useRoutines(): UseRoutinesResult {
     addNewRoutine,
     updateRoutineData,
     deleteRoutineData,
+    clearAllRoutinesData,
     refreshRoutines,
   };
 }

@@ -1,24 +1,28 @@
 .routine-card {
   width: 100%;
-  height: 140px;
+  min-height: 508px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 .routine-card__title {
   margin: 0 0 6px 0;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #fff;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .routine-card__description {
-  margin: 0 0 8px 0;
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 0.9rem;
   color: #aaa;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -26,12 +30,12 @@
 .routine-card__meta {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .routine-card__pill {
-  font-size: 0.75rem;
-  padding: 2px 8px;
+  font-size: 0.8rem;
+  padding: 4px 10px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
   color: #ccc;

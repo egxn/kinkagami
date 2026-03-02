@@ -5,7 +5,9 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import "@tensorflow/tfjs-backend-wasm";
 
+import { useModelVersions } from "./useModelVersions";
 import { logger } from "../utils/logger";
+import { getMoveNetModelUrl } from "../utils/modelVersions";
 
 interface UseMovenetReturn {
   detector: poseDetection.PoseDetector | null;
@@ -15,6 +17,9 @@ interface UseMovenetReturn {
 }
 
 export const useMovenet = (): UseMovenetReturn => {
+  const {
+    config: { movenet: movenetVersion },
+  } = useModelVersions();
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
   const [detector, setDetector] = useState<poseDetection.PoseDetector | null>(
     null,
@@ -47,15 +52,20 @@ export const useMovenet = (): UseMovenetReturn => {
           );
         }
 
-        const loadStatus = "Loading MoveNet model...";
+        const loadStatus = `Loading MoveNet model (${movenetVersion})...`;
         if (mounted) setStatus(loadStatus);
         logger.log("useMovenet", loadStatus);
+
+        const modelType =
+          movenetVersion === "thunder"
+            ? poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
+            : poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING;
 
         const detector = await poseDetection.createDetector(
           poseDetection.SupportedModels.MoveNet,
           {
-            modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-            modelUrl: "/models/movenet/model.json",
+            modelType,
+            modelUrl: getMoveNetModelUrl(movenetVersion),
             enableSmoothing: true,
             
           },
@@ -95,7 +105,7 @@ export const useMovenet = (): UseMovenetReturn => {
       }
       setDetector(null);
     };
-  }, []);
+  }, [movenetVersion]);
 
   return {
     detector,

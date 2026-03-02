@@ -5,7 +5,12 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import "@tensorflow/tfjs-backend-wasm";
 
+import { useModelVersions } from "./useModelVersions";
 import { logger } from "../utils/logger";
+import {
+  getBlazePoseDetectorUrl,
+  getBlazePoseLandmarkUrl,
+} from "../utils/modelVersions";
 
 interface UseBlazePoseReturn {
   detector: poseDetection.PoseDetector | null;
@@ -15,6 +20,9 @@ interface UseBlazePoseReturn {
 }
 
 export const useBlazePose = (): UseBlazePoseReturn => {
+  const {
+    config: { blazepose: blazeposeVersion },
+  } = useModelVersions();
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
   const [detector, setDetector] = useState<poseDetection.PoseDetector | null>(
     null,
@@ -46,32 +54,35 @@ export const useBlazePose = (): UseBlazePoseReturn => {
           );
         }
 
-        const loadStatus = "Loading BlazePose model...";
+        const loadStatus = `Loading BlazePose model (${blazeposeVersion})...`;
         if (mounted) setStatus(loadStatus);
         logger.log("useBlazePose", loadStatus);
         logger.log("useBlazePose", "BlazePose offline config", {
           runtime: "tfjs",
-          modelType: "full",
+          modelType: blazeposeVersion,
           backend: tf.getBackend(),
         });
 
-        const detectorCheck = await fetch("/models/blazepose/detector/model.json", {
+        const detectorUrl = getBlazePoseDetectorUrl();
+        const landmarkUrl = getBlazePoseLandmarkUrl(blazeposeVersion);
+
+        const detectorCheck = await fetch(detectorUrl, {
           method: "HEAD",
         });
         if (!detectorCheck.ok) {
           throw new Error(
-            `Missing BlazePose detector model at /models/blazepose/detector/model.json. ` +
+            `Missing BlazePose detector model at ${detectorUrl}. ` +
               "Add detector files under /public/models/blazepose/detector/.",
           );
         }
 
-        const landmarkCheck = await fetch("/models/blazepose/landmark/model.json", {
+        const landmarkCheck = await fetch(landmarkUrl, {
           method: "HEAD",
         });
         if (!landmarkCheck.ok) {
           throw new Error(
-            `Missing BlazePose landmark model at /models/blazepose/landmark/model.json. ` +
-              "Add landmark files under /public/models/blazepose/landmark/.",
+            `Missing BlazePose landmark model at ${landmarkUrl}. ` +
+              "Add landmark files under /public/models/blazepose/.",
           );
         }
 
@@ -79,9 +90,9 @@ export const useBlazePose = (): UseBlazePoseReturn => {
           poseDetection.SupportedModels.BlazePose,
           {
             runtime: "tfjs",
-            modelType: "full" as const,
-            detectorModelUrl: "/models/blazepose/detector/model.json",
-            landmarkModelUrl: "/models/blazepose/landmark/model.json",
+            modelType: blazeposeVersion,
+            detectorModelUrl: detectorUrl,
+            landmarkModelUrl: landmarkUrl,
             enableSmoothing: true,
           },
         );
@@ -143,7 +154,7 @@ export const useBlazePose = (): UseBlazePoseReturn => {
       }
       setDetector(null);
     };
-  }, []);
+  }, [blazeposeVersion]);
 
   return {
     detector,
