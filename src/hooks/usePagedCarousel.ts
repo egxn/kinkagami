@@ -15,7 +15,9 @@ export function usePagedCarousel<T>(
   itemsPerPage: number,
 ): UsePagedCarouselResult<T> {
   const [startIndex, setStartIndex] = useState(0);
-  const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
+  const [transitionDirection, setTransitionDirection] = useState<
+    "forward" | "backward"
+  >("forward");
 
   const maxStart = Math.max(0, items.length - itemsPerPage);
   const clampedStartIndex = Math.min(startIndex, maxStart);

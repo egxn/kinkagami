@@ -13,7 +13,9 @@ import {
 } from "../utils/modelVersions";
 
 export interface HandPoseDetector {
-  estimateHands: (input: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement) => Promise<unknown[]>;
+  estimateHands: (
+    input: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement,
+  ) => Promise<unknown[]>;
   dispose: () => void;
 }
 
@@ -43,8 +45,10 @@ const initializeSharedDetector = async (
 ): Promise<HandPoseDetector> => {
   const configKey = `handpose:${handposeVersion}`;
 
-  if (sharedDetector && sharedInitConfigKey === configKey) return sharedDetector;
-  if (sharedInitPromise && sharedInitConfigKey === configKey) return sharedInitPromise;
+  if (sharedDetector && sharedInitConfigKey === configKey)
+    return sharedDetector;
+  if (sharedInitPromise && sharedInitConfigKey === configKey)
+    return sharedInitPromise;
 
   if (sharedDetector && sharedInitConfigKey !== configKey) {
     try {
@@ -71,17 +75,24 @@ const initializeSharedDetector = async (
           logger.log("useHandPose", "WebGL failed, falling back to WASM");
           await tf.setBackend("wasm");
           await tf.ready();
-          logger.log("useHandPose", `${tf.getBackend()} backend is ready (fallback)`);
+          logger.log(
+            "useHandPose",
+            `${tf.getBackend()} backend is ready (fallback)`,
+          );
         }
       } else {
         await tf.ready();
-        logger.log("useHandPose", `${currentBackend} backend already configured`);
+        logger.log(
+          "useHandPose",
+          `${currentBackend} backend already configured`,
+        );
       }
 
       sharedStatus = `Loading HandPose model (${handposeVersion})...`;
       logger.log("useHandPose", sharedStatus);
 
-      const handPoseDetection = await import("@tensorflow-models/hand-pose-detection");
+      const handPoseDetection =
+        await import("@tensorflow-models/hand-pose-detection");
 
       const detectorUrl = getHandPoseDetectorUrl(handposeVersion);
       const landmarkUrl = getHandPoseLandmarkUrl(handposeVersion);
@@ -112,7 +123,8 @@ const initializeSharedDetector = async (
       logger.log("useHandPose", sharedStatus);
       return sharedDetector;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error loading model";
+      const message =
+        error instanceof Error ? error.message : "Error loading model";
       const normalizedError = normalizeInitError(message);
       sharedInitError = normalizedError;
       sharedStatus = `Error: ${normalizedError}`;
@@ -131,8 +143,12 @@ export const useHandPose = (): UseHandPoseReturn => {
   const {
     config: { handpose: handposeVersion },
   } = useModelVersions();
-  const [detector, setDetector] = useState<HandPoseDetector | null>(sharedDetector);
-  const [isLoading, setIsLoading] = useState(!sharedDetector && !sharedInitError);
+  const [detector, setDetector] = useState<HandPoseDetector | null>(
+    sharedDetector,
+  );
+  const [isLoading, setIsLoading] = useState(
+    !sharedDetector && !sharedInitError,
+  );
   const [error, setError] = useState<string | null>(sharedInitError);
   const [status, setStatus] = useState(sharedStatus);
 
@@ -164,7 +180,8 @@ export const useHandPose = (): UseHandPoseReturn => {
         setIsLoading(false);
       } catch (err) {
         if (!mounted) return;
-        const errorMessage = err instanceof Error ? err.message : "Error loading model";
+        const errorMessage =
+          err instanceof Error ? err.message : "Error loading model";
         setError(errorMessage);
         setStatus(`Error: ${errorMessage}`);
         setIsLoading(false);

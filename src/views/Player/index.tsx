@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteExercise, getAllExercises } from "../../db/dbService";
 import type { Exercise } from "../../types/exercise";
-import { calculateAllBodyAngles, type RecordingAngleEntry } from "../../utils/poseUtils";
+import {
+  calculateAllBodyAngles,
+  type RecordingAngleEntry,
+} from "../../utils/poseUtils";
 import { DebugFSM } from "../../components/DebugFSM";
 import Skeleton from "../../components/Skeleton";
 import "./Player.scss";
@@ -43,7 +46,8 @@ export default function Player() {
     return selectedRecord.recording_points ?? [];
   }, [selectedRecord, playbackSource]);
 
-  const activeModel = playbackSource === "tutor_points" ? "blazepose" : "movenet";
+  const activeModel =
+    playbackSource === "tutor_points" ? "blazepose" : "movenet";
 
   const activeAnglesFrames = useMemo<RecordingAngleEntry[][]>(() => {
     if (!selectedRecord) return [];
@@ -182,8 +186,7 @@ export default function Player() {
     setCurrentFrameIndex(index);
   };
 
-  const currentFramePoses =
-    activeFrames[currentFrameIndex]?.poses ?? [];
+  const currentFramePoses = activeFrames[currentFrameIndex]?.poses ?? [];
 
   const fsmProgress = useMemo(() => {
     if (activeFrames.length < 2) return 0;
@@ -217,8 +220,7 @@ export default function Player() {
   };
 
   const getCurrentTime = () => {
-    if (!selectedRecord || activeFrames.length === 0)
-      return "0.0";
+    if (!selectedRecord || activeFrames.length === 0) return "0.0";
     const first = activeFrames[0].timestamp;
     const current = activeFrames[currentFrameIndex]?.timestamp || first;
     // Timestamps are already in seconds
@@ -258,7 +260,9 @@ export default function Player() {
       </div>
 
       <div className="player-content player-content--vertical">
-        <div className={`exercise-list exercise-list--floating ${isListCollapsed ? "collapsed" : ""}`}>
+        <div
+          className={`exercise-list exercise-list--floating ${isListCollapsed ? "collapsed" : ""}`}
+        >
           <button
             className="collapse-toggle"
             onClick={() => setIsListCollapsed(!isListCollapsed)}
@@ -278,8 +282,8 @@ export default function Player() {
               >
                 <span className="exercise-name">{record.name}</span>
                 <span className="exercise-info">
-                  rec: {record.recording_points.length} • tutor: {record.tutor_points?.length ?? 0} •{" "}
-                  {getDuration(record)}s
+                  rec: {record.recording_points.length} • tutor:{" "}
+                  {record.tutor_points?.length ?? 0} • {getDuration(record)}s
                 </span>
               </div>
             ))
@@ -307,9 +311,13 @@ export default function Player() {
                           .map((angle) => (
                             <div key={angle.name} className="angle-item">
                               <span className="angle-name">
-                                {angle.name.replace(/_/g, " ").replace("left ", "")}
+                                {angle.name
+                                  .replace(/_/g, " ")
+                                  .replace("left ", "")}
                               </span>
-                              <span className="angle-value">{angle.value.toFixed(0)}°</span>
+                              <span className="angle-value">
+                                {angle.value.toFixed(0)}°
+                              </span>
                             </div>
                           ))}
                       </div>
@@ -319,9 +327,13 @@ export default function Player() {
                           .map((angle) => (
                             <div key={angle.name} className="angle-item">
                               <span className="angle-name">
-                                {angle.name.replace(/_/g, " ").replace("right ", "")}
+                                {angle.name
+                                  .replace(/_/g, " ")
+                                  .replace("right ", "")}
                               </span>
-                              <span className="angle-value">{angle.value.toFixed(0)}°</span>
+                              <span className="angle-value">
+                                {angle.value.toFixed(0)}°
+                              </span>
                             </div>
                           ))}
                       </div>
@@ -354,7 +366,9 @@ export default function Player() {
                 )}
               </div>
             ) : (
-              <span className="no-selection">Select an exercise with FSM data</span>
+              <span className="no-selection">
+                Select an exercise with FSM data
+              </span>
             )}
           </div>
         </div>
@@ -400,7 +414,9 @@ export default function Player() {
                 <label>Source:</label>
                 <select
                   value={playbackSource}
-                  onChange={(e) => setPlaybackSource(e.target.value as PlaybackSource)}
+                  onChange={(e) =>
+                    setPlaybackSource(e.target.value as PlaybackSource)
+                  }
                   disabled={
                     !selectedRecord ||
                     ((selectedRecord.recording_points?.length ?? 0) === 0 &&
@@ -409,7 +425,9 @@ export default function Player() {
                 >
                   <option
                     value="recording_points"
-                    disabled={(selectedRecord?.recording_points?.length ?? 0) === 0}
+                    disabled={
+                      (selectedRecord?.recording_points?.length ?? 0) === 0
+                    }
                   >
                     MoveNet (recording_points)
                   </option>

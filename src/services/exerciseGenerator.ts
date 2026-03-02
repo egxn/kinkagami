@@ -55,24 +55,34 @@ function extractAngleTimeSeries(
 ): Map<string, AngleTimeSeries> {
   const angleMap = new Map<string, AngleTimeSeries>();
 
-  console.log("[extractAngleTimeSeries] Processing", recordingAngles.length, "frames");
-  
+  console.log(
+    "[extractAngleTimeSeries] Processing",
+    recordingAngles.length,
+    "frames",
+  );
+
   if (recordingAngles.length > 0) {
-    console.log("[extractAngleTimeSeries] First frame sample:", JSON.stringify(recordingAngles[0]).substring(0, 200));
+    console.log(
+      "[extractAngleTimeSeries] First frame sample:",
+      JSON.stringify(recordingAngles[0]).substring(0, 200),
+    );
   }
 
   for (const frame of recordingAngles) {
     if (!frame.angles || !Array.isArray(frame.angles)) {
-      console.warn("[extractAngleTimeSeries] Frame missing angles array:", frame);
+      console.warn(
+        "[extractAngleTimeSeries] Frame missing angles array:",
+        frame,
+      );
       continue;
     }
-    
+
     for (const angle of frame.angles) {
       if (!angle.name || angle.value === undefined) {
         console.warn("[extractAngleTimeSeries] Invalid angle entry:", angle);
         continue;
       }
-      
+
       if (!angleMap.has(angle.name)) {
         angleMap.set(angle.name, {
           name: angle.name,
@@ -87,8 +97,12 @@ function extractAngleTimeSeries(
     }
   }
 
-  console.log("[extractAngleTimeSeries] Extracted", angleMap.size, "unique angles");
-  
+  console.log(
+    "[extractAngleTimeSeries] Extracted",
+    angleMap.size,
+    "unique angles",
+  );
+
   return angleMap;
 }
 
@@ -221,16 +235,21 @@ export function createSignals(
   const signals: Record<string, SignalDef> = {};
   const angleMap = extractAngleTimeSeries(recordingAngles);
 
-  console.log("[createSignals] Found angle series:", Array.from(angleMap.keys()));
+  console.log(
+    "[createSignals] Found angle series:",
+    Array.from(angleMap.keys()),
+  );
 
   for (const [name, series] of angleMap) {
     const values = series.values.map((v) => v.value);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = max - min;
-    
-    console.log(`[createSignals] ${name}: min=${min.toFixed(1)}, max=${max.toFixed(1)}, range=${range.toFixed(1)}, threshold=${MIN_MOVEMENT_THRESHOLD}`);
-    
+
+    console.log(
+      `[createSignals] ${name}: min=${min.toFixed(1)}, max=${max.toFixed(1)}, range=${range.toFixed(1)}, threshold=${MIN_MOVEMENT_THRESHOLD}`,
+    );
+
     if (hasSignificantMovement(series)) {
       // Convert string points to BodyPart type
       signals[name] = {
@@ -274,7 +293,10 @@ export function createNodes(
         node: {
           id: generateNodeId(signalName, min, max),
           signal: signalName,
-          range: [Math.round(min - ANGLE_NOISE_TOLERANCE), Math.round(max + ANGLE_NOISE_TOLERANCE)],
+          range: [
+            Math.round(min - ANGLE_NOISE_TOLERANCE),
+            Math.round(max + ANGLE_NOISE_TOLERANCE),
+          ],
           hold_ms: Math.max(MIN_HOLD_MS, Math.round(durationMs)),
           emit: true,
         },
@@ -441,8 +463,8 @@ export function createEdges(
   // This connects sync nodes to nodes that start after them
   for (const syncNode of syncNodes) {
     // Find the timestamp of the sync (latest end time of required nodes)
-    const requiredNodes = nodesWithTiming.filter(
-      (n) => syncNode.requires?.includes(n.node.id),
+    const requiredNodes = nodesWithTiming.filter((n) =>
+      syncNode.requires?.includes(n.node.id),
     );
     if (requiredNodes.length === 0) continue;
 
@@ -546,23 +568,28 @@ export function createCompletion(
 /**
  * Generates a complete event graph from recording angles
  */
-export function generateEventGraph(
-  recordingAngles: RecordingAngle[],
-): {
+export function generateEventGraph(recordingAngles: RecordingAngle[]): {
   signals: Record<string, SignalDef>;
   eventGraph: EventGraph;
   timeConstraints: TimeConstraint[];
   completion: CompletionCriteria;
 } {
-  console.log("[generateEventGraph] Input recording angles:", recordingAngles.length, "frames");
-  
+  console.log(
+    "[generateEventGraph] Input recording angles:",
+    recordingAngles.length,
+    "frames",
+  );
+
   // Step 1: Create signals from angles with movement
   const signals = createSignals(recordingAngles);
   console.log("[generateEventGraph] Signals created:", Object.keys(signals));
 
   // Step 2: Create nodes based on angle values
   const nodesWithTiming = createNodes(recordingAngles, signals);
-  console.log("[generateEventGraph] Nodes with timing:", nodesWithTiming.length);
+  console.log(
+    "[generateEventGraph] Nodes with timing:",
+    nodesWithTiming.length,
+  );
 
   // Step 3: Create sync nodes for coinciding nodes
   const syncNodes = createSyncNodes(nodesWithTiming);
@@ -583,7 +610,10 @@ export function generateEventGraph(
 
   // Step 7: Create completion criteria
   const completion = createCompletion(nodesWithTiming, edges);
-  console.log("[generateEventGraph] Completion terminal nodes:", completion.terminal_nodes);
+  console.log(
+    "[generateEventGraph] Completion terminal nodes:",
+    completion.terminal_nodes,
+  );
 
   return {
     signals,

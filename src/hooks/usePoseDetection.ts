@@ -81,11 +81,15 @@ export const usePoseDetection = ({
   // Detection loop
   const startDetectionLoop = useCallback(() => {
     if (!detector || modelLoading || !streamReady) {
-      logger.log(debugTag, "Skipping detection loop: detector or stream not ready", {
-        hasDetector: !!detector,
-        modelLoading,
-        streamReady,
-      });
+      logger.log(
+        debugTag,
+        "Skipping detection loop: detector or stream not ready",
+        {
+          hasDetector: !!detector,
+          modelLoading,
+          streamReady,
+        },
+      );
       return;
     }
 
@@ -114,12 +118,16 @@ export const usePoseDetection = ({
 
         if (video.videoWidth === 0 || video.videoHeight === 0) {
           if (frameCount % 30 === 0) {
-            logger.log(debugTag, `Frame ${frameCount}: Video not ready for inference`, {
-              readyState: video.readyState,
-              videoWidth: video.videoWidth,
-              videoHeight: video.videoHeight,
-              paused: video.paused,
-            });
+            logger.log(
+              debugTag,
+              `Frame ${frameCount}: Video not ready for inference`,
+              {
+                readyState: video.readyState,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight,
+                paused: video.paused,
+              },
+            );
           }
           return;
         }
@@ -135,16 +143,23 @@ export const usePoseDetection = ({
             const score = kp.score;
             const safeScore =
               typeof score === "number" && Number.isFinite(score) ? score : 1;
-            return Number.isFinite(kp.x) && Number.isFinite(kp.y) && safeScore > 0.1;
+            return (
+              Number.isFinite(kp.x) && Number.isFinite(kp.y) && safeScore > 0.1
+            );
           }).length;
           const safeFirstPoseScore =
-            typeof firstPoseScore === "number" && Number.isFinite(firstPoseScore)
+            typeof firstPoseScore === "number" &&
+            Number.isFinite(firstPoseScore)
               ? firstPoseScore
               : null;
-          logger.log(debugTag, `Frame ${frameCount}: Detected ${poses.length} pose(s)`, {
-            firstPoseScore: safeFirstPoseScore,
-            visibleKeypoints,
-          });
+          logger.log(
+            debugTag,
+            `Frame ${frameCount}: Detected ${poses.length} pose(s)`,
+            {
+              firstPoseScore: safeFirstPoseScore,
+              visibleKeypoints,
+            },
+          );
 
           if (debugVerbose && frameCount % 30 === 0 && firstPose) {
             const validCoords = keypoints.filter(
@@ -153,11 +168,12 @@ export const usePoseDetection = ({
             const nanCoords = keypoints.filter(
               (kp) => !Number.isFinite(kp.x) || !Number.isFinite(kp.y),
             ).length;
-            const finiteScores = keypoints.filter((kp) =>
-              typeof kp.score === "number" && Number.isFinite(kp.score),
+            const finiteScores = keypoints.filter(
+              (kp) => typeof kp.score === "number" && Number.isFinite(kp.score),
             ).length;
             const nanScores = keypoints.filter(
-              (kp) => typeof kp.score === "number" && !Number.isFinite(kp.score),
+              (kp) =>
+                typeof kp.score === "number" && !Number.isFinite(kp.score),
             ).length;
             const undefinedScores = keypoints.length - finiteScores - nanScores;
             const sample = keypoints.slice(0, 5).map((kp) => ({
@@ -191,13 +207,17 @@ export const usePoseDetection = ({
         } else {
           emptyPoseFrames++;
           if (emptyPoseFrames % 30 === 0) {
-            logger.warn(debugTag, `No poses detected for ${emptyPoseFrames} frames`, {
-              loopId,
-              frameCount,
-              videoWidth: video.videoWidth,
-              videoHeight: video.videoHeight,
-              readyState: video.readyState,
-            });
+            logger.warn(
+              debugTag,
+              `No poses detected for ${emptyPoseFrames} frames`,
+              {
+                loopId,
+                frameCount,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight,
+                readyState: video.readyState,
+              },
+            );
           }
         }
       } finally {
@@ -232,10 +252,7 @@ export const usePoseDetection = ({
           detectLoop();
           setupRetry();
         } else if (retryCount >= MAX_RETRIES) {
-          logger.error(
-            debugTag,
-            "Max retries reached for pose detection",
-          );
+          logger.error(debugTag, "Max retries reached for pose detection");
         }
       }, RETRY_DELAY);
     };

@@ -6,11 +6,19 @@ import {
   type SessionComparator,
   type SessionComparatorSnapshot,
 } from "../services/sessionComparator";
-import { EMPTY_SNAPSHOT, SessionComparisonContext } from "./SessionComparisonContextDef";
+import {
+  EMPTY_SNAPSHOT,
+  SessionComparisonContext,
+} from "./SessionComparisonContextDef";
 
-export function SessionComparisonProvider({ children }: { children: React.ReactNode }) {
+export function SessionComparisonProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const comparatorRef = useRef<SessionComparator | null>(null);
-  const [snapshot, setSnapshot] = useState<SessionComparatorSnapshot>(EMPTY_SNAPSHOT);
+  const [snapshot, setSnapshot] =
+    useState<SessionComparatorSnapshot>(EMPTY_SNAPSHOT);
 
   const setExercise = useCallback((exercise: Exercise | null) => {
     if (!exercise) {

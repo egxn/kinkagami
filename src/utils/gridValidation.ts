@@ -1,5 +1,9 @@
 import type { Pose } from "@tensorflow-models/pose-detection";
-import type { BodyPart, GridValidationDefinition, RecordingPoint } from "../types/exercise";
+import type {
+  BodyPart,
+  GridValidationDefinition,
+  RecordingPoint,
+} from "../types/exercise";
 import { findKeypoint } from "./geometry";
 
 export const DEFAULT_GRID_ROWS = 3;
@@ -49,7 +53,12 @@ const getPoseBounds = (pose: Pose, minConfidence: number) => {
   const width = maxX - minX;
   const height = maxY - minY;
 
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width < 1 ||
+    height < 1
+  ) {
     return null;
   }
 
@@ -102,7 +111,12 @@ export function buildGridValidationDefinition(
     for (const keypointName of keypoints) {
       const kp = findKeypoint(pose.keypoints ?? [], keypointName);
       const score = kp?.score ?? 1;
-      if (!kp || !Number.isFinite(kp.x) || !Number.isFinite(kp.y) || score < minConfidence) {
+      if (
+        !kp ||
+        !Number.isFinite(kp.x) ||
+        !Number.isFinite(kp.y) ||
+        score < minConfidence
+      ) {
         continue;
       }
 

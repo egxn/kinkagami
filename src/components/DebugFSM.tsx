@@ -69,7 +69,10 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       const scaledWidth = canvas.width * clampedZoom;
       const scaledHeight = canvas.height * clampedZoom;
       const left = Math.max(0, (scaledWidth - scrollContainer.clientWidth) / 2);
-      const top = Math.max(0, (scaledHeight - scrollContainer.clientHeight) / 2);
+      const top = Math.max(
+        0,
+        (scaledHeight - scrollContainer.clientHeight) / 2,
+      );
       scrollContainer.scrollTo({ left, top, behavior: "smooth" });
     });
   };
@@ -154,7 +157,14 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       0,
     );
 
-    return { nodeMap, edges, layers, sortedNodeIds, nodeTimings, totalTimelineMs };
+    return {
+      nodeMap,
+      edges,
+      layers,
+      sortedNodeIds,
+      nodeTimings,
+      totalTimelineMs,
+    };
   }, [exercise]);
 
   useEffect(() => {
@@ -186,14 +196,25 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
     if (!layoutData) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = COLORS.textMuted;
-      ctx.font = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font =
+        "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("No event graph data available", canvas.width / 2, canvas.height / 2);
+      ctx.fillText(
+        "No event graph data available",
+        canvas.width / 2,
+        canvas.height / 2,
+      );
       return;
     }
 
-    const { nodeMap, edges, layers, sortedNodeIds, nodeTimings, totalTimelineMs } =
-      layoutData;
+    const {
+      nodeMap,
+      edges,
+      layers,
+      sortedNodeIds,
+      nodeTimings,
+      totalTimelineMs,
+    } = layoutData;
 
     // Calculate dimensions - VERTICAL layout
     const nodeWidth = 120;
@@ -204,12 +225,19 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
 
     // Find max nodes in any layer for width calculation (handle sparse arrays)
     const validLayers = layers.filter((l) => l && l.length > 0);
-    const maxNodesInLayer = validLayers.length > 0 
-      ? Math.max(...validLayers.map((l) => l.length)) 
-      : 1;
-    
-    const canvasWidth = Math.max(800, maxNodesInLayer * nodeSpacing + padding * 2);
-    const canvasHeight = Math.max(320, validLayers.length * layerSpacing + padding * 2);
+    const maxNodesInLayer =
+      validLayers.length > 0
+        ? Math.max(...validLayers.map((l) => l.length))
+        : 1;
+
+    const canvasWidth = Math.max(
+      800,
+      maxNodesInLayer * nodeSpacing + padding * 2,
+    );
+    const canvasHeight = Math.max(
+      320,
+      validLayers.length * layerSpacing + padding * 2,
+    );
 
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -228,7 +256,12 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
     nodeMap.forEach((n) => {
       const layerNodes = layers[n.layer!];
       if (!layerNodes) {
-        console.warn("[DebugFSM] Missing layer for node:", n.id, "layer:", n.layer);
+        console.warn(
+          "[DebugFSM] Missing layer for node:",
+          n.id,
+          "layer:",
+          n.layer,
+        );
         return;
       }
       const indexInLayer = layerNodes.indexOf(n.id);
@@ -306,7 +339,7 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
         toX,
         toY - controlPointOffset,
         toX,
-        toY
+        toY,
       );
       ctx.stroke();
 
@@ -318,11 +351,11 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       ctx.moveTo(toX, toY);
       ctx.lineTo(
         toX - arrowSize * Math.cos(angle - Math.PI / 6),
-        toY - arrowSize * Math.sin(angle - Math.PI / 6)
+        toY - arrowSize * Math.sin(angle - Math.PI / 6),
       );
       ctx.lineTo(
         toX - arrowSize * Math.cos(angle + Math.PI / 6),
-        toY - arrowSize * Math.sin(angle + Math.PI / 6)
+        toY - arrowSize * Math.sin(angle + Math.PI / 6),
       );
       ctx.closePath();
       ctx.fill();
@@ -356,7 +389,12 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       ctx.lineTo(x + nodeWidth - radius, y);
       ctx.quadraticCurveTo(x + nodeWidth, y, x + nodeWidth, y + radius);
       ctx.lineTo(x + nodeWidth, y + nodeHeight - radius);
-      ctx.quadraticCurveTo(x + nodeWidth, y + nodeHeight, x + nodeWidth - radius, y + nodeHeight);
+      ctx.quadraticCurveTo(
+        x + nodeWidth,
+        y + nodeHeight,
+        x + nodeWidth - radius,
+        y + nodeHeight,
+      );
       ctx.lineTo(x + radius, y + nodeHeight);
       ctx.quadraticCurveTo(x, y + nodeHeight, x, y + nodeHeight - radius);
       ctx.lineTo(x, y + radius);
@@ -373,7 +411,8 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
 
       // Node label
       ctx.fillStyle = COLORS.text;
-      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font =
+        "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
@@ -383,14 +422,16 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
 
       // Small layer indicator
       ctx.fillStyle = COLORS.textMuted;
-      ctx.font = "9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font =
+        "9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.fillText(`L${n.layer}`, n.x, n.y + nodeHeight / 2 - 8);
     });
 
     // Draw legend in corner
     const legendX = 10;
     const legendY = canvasHeight - 90;
-    ctx.font = "10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.font =
+      "10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
 
     const legendItems = [
@@ -413,13 +454,16 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
       <div className="fsm-header">
         <h3>FSM: {exercise.name}</h3>
         <span className="node-count">
-          {exercise.event_graph?.nodes.length || 0} nodes | {exercise.event_graph?.edges.length || 0} edges
+          {exercise.event_graph?.nodes.length || 0} nodes |{" "}
+          {exercise.event_graph?.edges.length || 0} edges
         </span>
       </div>
-      <div 
-        className="canvas-container" 
+      <div
+        className="canvas-container"
         ref={scrollContainerRef}
-        style={fitHeight ? { maxHeight: fitHeight, minHeight: fitHeight } : undefined}
+        style={
+          fitHeight ? { maxHeight: fitHeight, minHeight: fitHeight } : undefined
+        }
       >
         <div className="zoom-controls">
           <button
@@ -432,15 +476,26 @@ export const DebugFSM: React.FC<DebugFSMProps> = ({
           <button onClick={handleFitToView} title="Fit to view">
             ⊡
           </button>
-          <button onClick={handleZoomOut} title="Zoom out" disabled={zoom <= MIN_ZOOM}>
+          <button
+            onClick={handleZoomOut}
+            title="Zoom out"
+            disabled={zoom <= MIN_ZOOM}
+          >
             −
           </button>
           <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-          <button onClick={handleZoomIn} title="Zoom in" disabled={zoom >= MAX_ZOOM}>
+          <button
+            onClick={handleZoomIn}
+            title="Zoom in"
+            disabled={zoom >= MAX_ZOOM}
+          >
             +
           </button>
         </div>
-        <div className="canvas-scroll-area" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+        <div
+          className="canvas-scroll-area"
+          style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
+        >
           <canvas ref={canvasRef} width={800} height={300} />
         </div>
       </div>

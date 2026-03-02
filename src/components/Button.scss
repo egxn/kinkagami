@@ -78,8 +78,8 @@
 .kgm-button--hovered {
   &::before {
     opacity: 1;
-    animation: kgm-button-radial-inward 0.95s cubic-bezier(0.45, 0.02, 0.25, 1) infinite
-      alternate;
+    animation: kgm-button-radial-inward 0.95s cubic-bezier(0.45, 0.02, 0.25, 1)
+      infinite alternate;
   }
 }
 

@@ -25,7 +25,11 @@ export const BlazePoseProvider = ({
     onStreamReady,
     streamReady,
   } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
-  const { detector, isLoading: modelLoading, error: modelError } = useBlazePose();
+  const {
+    detector,
+    isLoading: modelLoading,
+    error: modelError,
+  } = useBlazePose();
 
   const value = useMemo<BlazePoseContextType>(
     () => ({
@@ -53,6 +57,8 @@ export const BlazePoseProvider = ({
   );
 
   return (
-    <BlazePoseContext.Provider value={value}>{children}</BlazePoseContext.Provider>
+    <BlazePoseContext.Provider value={value}>
+      {children}
+    </BlazePoseContext.Provider>
   );
 };

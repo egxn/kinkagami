@@ -62,9 +62,14 @@ export const saveModelVersionsConfig = (
   const next = sanitizeConfig({ ...current, ...updates });
 
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(MODEL_VERSIONS_STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(
+      MODEL_VERSIONS_STORAGE_KEY,
+      JSON.stringify(next),
+    );
     window.dispatchEvent(
-      new CustomEvent<ModelVersionsConfig>(MODEL_VERSIONS_EVENT, { detail: next }),
+      new CustomEvent<ModelVersionsConfig>(MODEL_VERSIONS_EVENT, {
+        detail: next,
+      }),
     );
   }
 

@@ -87,7 +87,11 @@ function HandModelCanvas({
   streamReady: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
 }) {
-  const { detector, isLoading: modelLoading, error: modelError } = useHandPose();
+  const {
+    detector,
+    isLoading: modelLoading,
+    error: modelError,
+  } = useHandPose();
   const [hands, setHands] = useState<HandPrediction[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -115,9 +119,12 @@ function HandModelCanvas({
       try {
         // Sync HTML attributes so the library's getImageSize reads real dimensions
         if (video.width !== video.videoWidth) video.width = video.videoWidth;
-        if (video.height !== video.videoHeight) video.height = video.videoHeight;
+        if (video.height !== video.videoHeight)
+          video.height = video.videoHeight;
 
-        const result = (await detector.estimateHands(video)) as HandPrediction[];
+        const result = (await detector.estimateHands(
+          video,
+        )) as HandPrediction[];
         if (mounted) {
           setHands(result ?? []);
         }
@@ -203,7 +210,11 @@ function BlazePoseModelCanvas({
   streamReady: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
 }) {
-  const { detector, isLoading: modelLoading, error: modelError } = useBlazePose();
+  const {
+    detector,
+    isLoading: modelLoading,
+    error: modelError,
+  } = useBlazePose();
 
   return (
     <PoseModelCanvas
@@ -229,10 +240,8 @@ export default function Models() {
     streamReady,
     videoRef,
   } = usePoseContext();
-  const {
-    config: modelVersions,
-    updateConfig: updateModelVersions,
-  } = useModelVersions();
+  const { config: modelVersions, updateConfig: updateModelVersions } =
+    useModelVersions();
 
   const [selectedModel, setSelectedModel] = useState<ModelOption>("blazepose");
 
@@ -347,7 +356,9 @@ export default function Models() {
           id="blazepose-version"
           value={modelVersions.blazepose}
           onChange={(e) =>
-            updateModelVersions({ blazepose: e.target.value as BlazePoseVersion })
+            updateModelVersions({
+              blazepose: e.target.value as BlazePoseVersion,
+            })
           }
           style={{ padding: "8px 10px" }}
         >
@@ -414,7 +425,8 @@ export default function Models() {
       >
         Validando: {selectedLabel}
         <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>
-          MoveNet: {modelVersions.movenet} · BlazePose: {modelVersions.blazepose} · HandPose: {modelVersions.handpose}
+          MoveNet: {modelVersions.movenet} · BlazePose:{" "}
+          {modelVersions.blazepose} · HandPose: {modelVersions.handpose}
         </div>
       </div>
     </div>

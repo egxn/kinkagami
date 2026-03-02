@@ -218,9 +218,7 @@ export const drawPosesOnCanvas = (
 
   if (fitMode === "cover" || fitMode === "contain") {
     const uniformScale =
-      fitMode === "cover"
-        ? Math.max(scaleX, scaleY)
-        : Math.min(scaleX, scaleY);
+      fitMode === "cover" ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
     scaleX = uniformScale;
     scaleY = uniformScale;
     offsetX = (renderWidth - video.videoWidth * uniformScale) / 2;
@@ -241,7 +239,10 @@ export const drawPosesOnCanvas = (
     const visibleKeypoints = pose.keypoints.filter((kp) =>
       isVisibleKeypoint(kp, visibilityThreshold),
     );
-    logger.log("Canvas", `Pose has ${visibleKeypoints.length} visible keypoints`);
+    logger.log(
+      "Canvas",
+      `Pose has ${visibleKeypoints.length} visible keypoints`,
+    );
 
     // Draw keypoints
     pose.keypoints.forEach((keypoint) => {

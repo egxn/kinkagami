@@ -56,7 +56,10 @@
       border-radius: 8px;
       padding: 0.5rem;
       overflow-y: auto;
-      transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+      transition:
+        width 0.3s ease,
+        padding 0.3s ease,
+        opacity 0.3s ease;
 
       &.collapsed {
         width: 48px;
@@ -262,7 +265,7 @@
               font-size: 1rem;
               font-weight: 700;
               color: #ffd700;
-              font-family: 'SF Mono', 'Consolas', monospace;
+              font-family: "SF Mono", "Consolas", monospace;
             }
           }
         }
@@ -482,7 +485,6 @@
           }
         }
       }
-
     }
   }
 

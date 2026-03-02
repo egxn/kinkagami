@@ -74,8 +74,12 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
     exercise ? (
       <ExerciseCard
         exercise={exercise}
-        isSelected={(exercise._id || exercise.exercise_id || "") in selectedRepsById}
-        onClick={() => handleExerciseClick(exercise._id || exercise.exercise_id || "")}
+        isSelected={
+          (exercise._id || exercise.exercise_id || "") in selectedRepsById
+        }
+        onClick={() =>
+          handleExerciseClick(exercise._id || exercise.exercise_id || "")
+        }
       />
     ) : null,
   );
@@ -128,7 +132,9 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
         return next;
       }
 
-      const ex = exercises.find((e) => e._id === exerciseId || e.exercise_id === exerciseId);
+      const ex = exercises.find(
+        (e) => e._id === exerciseId || e.exercise_id === exerciseId,
+      );
       const defaultReps = Math.max(1, ex?.reps ?? 10);
       next[exerciseId] = defaultReps;
       return next;
@@ -151,7 +157,7 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
         } catch {
           // Exercise might be using _id or exercise_id
           const exercise = exercises.find(
-            (e) => e._id === id || e.exercise_id === id
+            (e) => e._id === id || e.exercise_id === id,
           );
           if (exercise) selectedExercises.push(exercise);
         }
@@ -178,7 +184,7 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
 
       logger.log(
         "Exercises",
-        `Created routine with ${selectedCount} exercises`
+        `Created routine with ${selectedCount} exercises`,
       );
 
       // Clear selection after saving
@@ -213,11 +219,15 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
       cardSlotHeightPercent={78}
       actionSlotHeightPercent={22}
       navButtonSize={200}
-      footerButtonLabel={saving ? "Guardando..." : `Crear Rutina (${selectedCount})`}
+      footerButtonLabel={
+        saving ? "Guardando..." : `Crear Rutina (${selectedCount})`
+      }
       footerButtonOnAction={() => {
         void handleCreateRoutine();
       }}
-      footerButtonOnDiscard={() => logger.log("Exercises", "Create routine action discarded")}
+      footerButtonOnDiscard={() =>
+        logger.log("Exercises", "Create routine action discarded")
+      }
       footerButtonClassName="exercises-view__create-btn"
       footerButtonWidth="80%"
       footerButtonMinHeight={112}

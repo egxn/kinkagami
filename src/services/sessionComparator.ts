@@ -40,7 +40,10 @@ export interface SessionComparator {
   getSnapshot: () => SessionComparatorSnapshot;
 }
 
-const buildLevelMap = (nodes: EventNode[], edges: { from: string; to: string }[]) => {
+const buildLevelMap = (
+  nodes: EventNode[],
+  edges: { from: string; to: string }[],
+) => {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const parentsById = new Map<string, string[]>();
 
@@ -63,7 +66,9 @@ const buildLevelMap = (nodes: EventNode[], edges: { from: string; to: string }[]
     visiting.add(id);
     const parents = parentsById.get(id) ?? [];
     const level =
-      parents.length === 0 ? 0 : Math.max(...parents.map((parentId) => getLevel(parentId))) + 1;
+      parents.length === 0
+        ? 0
+        : Math.max(...parents.map((parentId) => getLevel(parentId))) + 1;
     visiting.delete(id);
 
     memo.set(id, level);
@@ -80,7 +85,8 @@ const buildLevelMap = (nodes: EventNode[], edges: { from: string; to: string }[]
 const getSignalBaseMargin = (signalDef?: SignalDef): number => {
   if (!signalDef) return ANGLE_MARGIN_MIN;
   if (signalDef.type === "distance") return DISTANCE_MARGIN_MIN;
-  if (signalDef.type === "relative_position") return RELATIVE_POSITION_MARGIN_MIN;
+  if (signalDef.type === "relative_position")
+    return RELATIVE_POSITION_MARGIN_MIN;
   return ANGLE_MARGIN_MIN;
 };
 
@@ -120,17 +126,18 @@ const smoothSignalValue = (
   return sum / Math.max(1, history.length);
 };
 
-const getSignalValue = (
-  pose: Pose,
-  signalDef: SignalDef,
-): number | null => {
+const getSignalValue = (pose: Pose, signalDef: SignalDef): number | null => {
   const keypoints = pose.keypoints ?? [];
 
   const getPoint = (name: string) => {
     const kp = findKeypoint(keypoints, name);
     if (!kp) return null;
     const score = typeof kp.score === "number" ? kp.score : 1;
-    if (!Number.isFinite(kp.x) || !Number.isFinite(kp.y) || score < MIN_CONFIDENCE) {
+    if (
+      !Number.isFinite(kp.x) ||
+      !Number.isFinite(kp.y) ||
+      score < MIN_CONFIDENCE
+    ) {
       return null;
     }
     return kp;
@@ -187,7 +194,12 @@ const buildSignalsFromPose = (
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-const toGridCell = (xNorm: number, yNorm: number, cols: number, rows: number): number => {
+const toGridCell = (
+  xNorm: number,
+  yNorm: number,
+  cols: number,
+  rows: number,
+): number => {
   const col = clamp(Math.floor(xNorm * cols), 0, cols - 1);
   const row = clamp(Math.floor(yNorm * rows), 0, rows - 1);
   return row * cols + col;
@@ -266,7 +278,8 @@ const computeGridProgress = (
   let matchedKeypoints = 0;
 
   for (const keypointName of keypoints) {
-    const target = gridValidation.cell_sequence_by_keypoint?.[keypointName] ?? [];
+    const target =
+      gridValidation.cell_sequence_by_keypoint?.[keypointName] ?? [];
     const live = liveSequenceByKeypoint.get(keypointName) ?? [];
 
     if (target.length === 0) {
@@ -431,7 +444,10 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
       };
 
       if (gridValidation) {
-        const bounds = getPoseBounds(pose, gridValidation.min_confidence ?? MIN_CONFIDENCE);
+        const bounds = getPoseBounds(
+          pose,
+          gridValidation.min_confidence ?? MIN_CONFIDENCE,
+        );
         if (bounds) {
           const keypoints = pose.keypoints ?? [];
           for (const keypointName of gridValidation.keypoints) {
@@ -446,15 +462,27 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
               continue;
             }
 
-            const xNorm = clamp((kp.x - bounds.minX) / bounds.width, 0, 0.999999);
-            const yNorm = clamp((kp.y - bounds.minY) / bounds.height, 0, 0.999999);
+            const xNorm = clamp(
+              (kp.x - bounds.minX) / bounds.width,
+              0,
+              0.999999,
+            );
+            const yNorm = clamp(
+              (kp.y - bounds.minY) / bounds.height,
+              0,
+              0.999999,
+            );
             const cell = toGridCell(
               xNorm,
               yNorm,
               gridValidation.cols,
               gridValidation.rows,
             );
-            appendCompressedCell(liveGridSequenceByKeypoint, keypointName, cell);
+            appendCompressedCell(
+              liveGridSequenceByKeypoint,
+              keypointName,
+              cell,
+            );
           }
         }
 
@@ -493,7 +521,9 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
 
         const holdMs = Math.max(
           0,
-          node.hold_ms && node.hold_ms > 0 ? node.hold_ms : DEFAULT_NODE_HOLD_MS,
+          node.hold_ms && node.hold_ms > 0
+            ? node.hold_ms
+            : DEFAULT_NODE_HOLD_MS,
         );
         const currentAccum = holdAccumulatedMsByNode.get(node.id) ?? 0;
 
@@ -502,7 +532,10 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
           const withinGrace = nowMs - lastMatchAt <= HOLD_MISS_GRACE_MS;
 
           if (!withinGrace) {
-            const decayed = Math.max(0, currentAccum - deltaMs * HOLD_DECAY_RATE);
+            const decayed = Math.max(
+              0,
+              currentAccum - deltaMs * HOLD_DECAY_RATE,
+            );
             holdAccumulatedMsByNode.set(node.id, decayed);
           }
           continue;

@@ -19,7 +19,8 @@
 
   --kgm-button-hover-border: rgba(74, 255, 168, 0.98);
   --kgm-button-hover-surface: rgba(36, 128, 86, 0.26);
-  --kgm-button-hover-glow: 0 0 22px rgba(74, 255, 168, 0.38), inset 0 0 24px rgba(74, 255, 168, 0.16);
+  --kgm-button-hover-glow:
+    0 0 22px rgba(74, 255, 168, 0.38), inset 0 0 24px rgba(74, 255, 168, 0.16);
   --kgm-button-hover-radial-1: rgba(171, 255, 212, 0.7);
   --kgm-button-hover-radial-2: rgba(103, 255, 179, 0.42);
   --kgm-button-hover-radial-3: rgba(45, 189, 120, 0.26);
@@ -60,7 +61,8 @@
 
   --kgm-button-hover-border: rgba(255, 228, 122, 0.98);
   --kgm-button-hover-surface: rgba(158, 127, 33, 0.24);
-  --kgm-button-hover-glow: 0 0 22px rgba(255, 228, 122, 0.35), inset 0 0 24px rgba(255, 228, 122, 0.14);
+  --kgm-button-hover-glow:
+    0 0 22px rgba(255, 228, 122, 0.35), inset 0 0 24px rgba(255, 228, 122, 0.14);
   --kgm-button-hover-radial-1: rgba(255, 244, 176, 0.72);
   --kgm-button-hover-radial-2: rgba(255, 218, 114, 0.44);
   --kgm-button-hover-radial-3: rgba(201, 151, 54, 0.28);
@@ -76,7 +78,8 @@
 
   --kgm-button-hover-border: rgba(128, 250, 255, 0.98);
   --kgm-button-hover-surface: rgba(35, 135, 138, 0.24);
-  --kgm-button-hover-glow: 0 0 22px rgba(128, 250, 255, 0.38), inset 0 0 24px rgba(128, 250, 255, 0.16);
+  --kgm-button-hover-glow:
+    0 0 22px rgba(128, 250, 255, 0.38), inset 0 0 24px rgba(128, 250, 255, 0.16);
   --kgm-button-hover-radial-1: rgba(183, 255, 255, 0.72);
   --kgm-button-hover-radial-2: rgba(121, 245, 255, 0.46);
   --kgm-button-hover-radial-3: rgba(59, 200, 210, 0.26);

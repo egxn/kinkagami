@@ -113,7 +113,11 @@ export const useBlazePose = (): UseBlazePoseReturn => {
           logger.log("useBlazePose", "Warmup inference completed");
         } catch (warmupErr) {
           // Warmup error is non-fatal; shaders compile on first real frame
-          logger.warn("useBlazePose", "Warmup inference failed (non-fatal):", warmupErr);
+          logger.warn(
+            "useBlazePose",
+            "Warmup inference failed (non-fatal):",
+            warmupErr,
+          );
         }
 
         if (!mounted) {

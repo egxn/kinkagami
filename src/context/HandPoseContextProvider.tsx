@@ -25,7 +25,11 @@ export const HandPoseProvider = ({
     onStreamReady,
     streamReady,
   } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
-  const { detector, isLoading: modelLoading, error: modelError } = useHandPose();
+  const {
+    detector,
+    isLoading: modelLoading,
+    error: modelError,
+  } = useHandPose();
 
   const value = useMemo<HandPoseContextType>(
     () => ({
@@ -52,5 +56,9 @@ export const HandPoseProvider = ({
     ],
   );
 
-  return <HandPoseContext.Provider value={value}>{children}</HandPoseContext.Provider>;
+  return (
+    <HandPoseContext.Provider value={value}>
+      {children}
+    </HandPoseContext.Provider>
+  );
 };

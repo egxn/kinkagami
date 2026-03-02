@@ -8,7 +8,6 @@ function Splash() {
   const navigate = useNavigate();
   const { cameraError, cameraReady, streamReady, videoRef } = usePoseContext();
 
-
   useEffect(() => {
     logger.log(
       "Splash",

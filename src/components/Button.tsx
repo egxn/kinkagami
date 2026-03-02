@@ -1,4 +1,11 @@
-import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { CSSProperties } from "react";
 import { useLocation } from "react-router-dom";
 import { useHandPose } from "../hooks";
@@ -147,7 +154,10 @@ export default function Button({
     onActionRef.current();
   };
   const hasChildren = Children.count(children) > 0;
-  const hasOnlyTextChildren = useMemo(() => isTextOnlyNode(children), [children]);
+  const hasOnlyTextChildren = useMemo(
+    () => isTextOnlyNode(children),
+    [children],
+  );
   const useLargeMinimumSize = !hasChildren || hasOnlyTextChildren;
   const contentAlignX: "left" | "center" =
     alignX === "auto" ? (hasOnlyTextChildren ? "center" : "left") : alignX;
@@ -215,7 +225,8 @@ export default function Button({
     };
   };
 
-  const showHover = !isAnyLoading && !(mode === "checkbox" && checked) && isHovered;
+  const showHover =
+    !isAnyLoading && !(mode === "checkbox" && checked) && isHovered;
   const showCheckboxIndicator = mode === "checkbox" && checked;
 
   return (
@@ -228,7 +239,9 @@ export default function Button({
         showHover ? "kgm-button--hovered" : "",
         isFocused ? "kgm-button--focused" : "",
         showCheckboxIndicator ? "kgm-button--checked" : "",
-        contentAlignX === "center" ? "kgm-button--align-center" : "kgm-button--align-left",
+        contentAlignX === "center"
+          ? "kgm-button--align-center"
+          : "kgm-button--align-left",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -246,7 +259,8 @@ export default function Button({
         ...resolveVisualStyle(),
         color: "white",
         userSelect: "none",
-        transition: "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+        transition:
+          "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
         cursor: isAnyLoading ? "progress" : "pointer",
         boxShadow: showCheckboxIndicator
           ? "0 0 0 2px rgba(88, 214, 141, 0.3), inset 0 0 18px rgba(88, 214, 141, 0.22)"
@@ -263,7 +277,9 @@ export default function Button({
         }
       }}
     >
-      {showCheckboxIndicator ? <span className="kgm-button__check">✓</span> : null}
+      {showCheckboxIndicator ? (
+        <span className="kgm-button__check">✓</span>
+      ) : null}
       <span className="kgm-button__content">{children}</span>
     </div>
   );

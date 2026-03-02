@@ -212,7 +212,7 @@ const isTransientError = (err: unknown): boolean => {
     m.includes("backend") ||
     m.includes("movedata") ||
     m.includes("info is undefined") ||
-    m.includes("can't access property \"backend\"")
+    m.includes('can\'t access property "backend"')
   );
 };
 
@@ -240,7 +240,10 @@ async function detect() {
     registrations.size === 0
   ) {
     const now = Date.now();
-    if (cursorState.visible && now - lastCursorSeenAt > CURSOR_VISIBILITY_GRACE_MS) {
+    if (
+      cursorState.visible &&
+      now - lastCursorSeenAt > CURSOR_VISIBILITY_GRACE_MS
+    ) {
       emitCursorState({ visible: false });
     }
 
@@ -306,8 +309,7 @@ async function detect() {
       const el = reg.getElement();
       if (!el) continue;
 
-      const over =
-        handKps.length > 0 ? handOverElement(handKps, v, el) : false;
+      const over = handKps.length > 0 ? handOverElement(handKps, v, el) : false;
 
       // ---- Hover ----
       const canHover =
@@ -318,10 +320,7 @@ async function detect() {
 
       if (reg.mode === "default") {
         if (canHover) {
-          if (
-            hoveredDefaultButtonId == null ||
-            hoveredDefaultButtonId === id
-          ) {
+          if (hoveredDefaultButtonId == null || hoveredDefaultButtonId === id) {
             hoveredDefaultButtonId = id;
           }
           effectiveHover = hoveredDefaultButtonId === id;
@@ -418,10 +417,7 @@ async function detect() {
       const now = Date.now();
       if (now - lastBackendErrorLogAt > 2000) {
         lastBackendErrorLogAt = now;
-        logger.warn(
-          "Button",
-          "Transient TensorFlow backend error; retrying.",
-        );
+        logger.warn("Button", "Transient TensorFlow backend error; retrying.");
       }
     } else {
       logger.error("Button", "Hand detection error", err);

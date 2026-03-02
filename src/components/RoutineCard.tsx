@@ -45,12 +45,18 @@ export default function RoutineCard({
         borderBottomRightRadius: 0,
       }}
     >
-      <div className={`routine-card ${isSelected ? "routine-card--selected" : ""}`}>
+      <div
+        className={`routine-card ${isSelected ? "routine-card--selected" : ""}`}
+      >
         <h3 className="routine-card__title">{routine.name || "Sin nombre"}</h3>
-        <p className="routine-card__description">{routine.description || "Sin descripción"}</p>
+        <p className="routine-card__description">
+          {routine.description || "Sin descripción"}
+        </p>
         <div className="routine-card__meta">
           <span className="routine-card__pill">{count} ejercicios</span>
-          <span className="routine-card__pill">{Math.round(routine.time ?? 0)}s</span>
+          <span className="routine-card__pill">
+            {Math.round(routine.time ?? 0)}s
+          </span>
         </div>
         {routine.stats?.muscleGroups?.length ? (
           <div className="routine-card__tags">
@@ -60,7 +66,9 @@ export default function RoutineCard({
               </span>
             ))}
             {routine.stats.muscleGroups.length > 3 && (
-              <span className="routine-card__tag">+{routine.stats.muscleGroups.length - 3}</span>
+              <span className="routine-card__tag">
+                +{routine.stats.muscleGroups.length - 3}
+              </span>
             )}
           </div>
         ) : null}

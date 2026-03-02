@@ -17,9 +17,9 @@ export type ExerciseRecord = Exercise;
 export const exercisesDB = new PouchDB("exercises");
 export const routinesDB = new PouchDB("routines");
 
-const exerciseJsonModules = import.meta.glob<{ default: Record<string, unknown> }>(
-  "./exercises/*.json",
-);
+const exerciseJsonModules = import.meta.glob<{
+  default: Record<string, unknown>;
+}>("./exercises/*.json");
 
 let seedExercisesPromise: Promise<void> | null = null;
 
@@ -27,26 +27,36 @@ const mapExerciseJsonToDoc = (
   exerciseData: Record<string, unknown>,
 ): Omit<Exercise, "_id" | "_rev" | "updatedAt"> => ({
   exercise_id:
-    typeof exerciseData.exercise_id === "string" ? exerciseData.exercise_id : undefined,
+    typeof exerciseData.exercise_id === "string"
+      ? exerciseData.exercise_id
+      : undefined,
   name: typeof exerciseData.name === "string" ? exerciseData.name : undefined,
   description:
-    typeof exerciseData.description === "string" ? exerciseData.description : undefined,
+    typeof exerciseData.description === "string"
+      ? exerciseData.description
+      : undefined,
   muscle_groups: Array.isArray(exerciseData.muscle_groups)
     ? (exerciseData.muscle_groups as string[])
     : undefined,
   difficulty:
-    typeof exerciseData.difficulty === "string" ? exerciseData.difficulty : undefined,
+    typeof exerciseData.difficulty === "string"
+      ? exerciseData.difficulty
+      : undefined,
   instructions: Array.isArray(exerciseData.instructions)
     ? (exerciseData.instructions as string[])
     : undefined,
   signals: exerciseData.signals as Exercise["signals"],
   event_graph: exerciseData.event_graph as Exercise["event_graph"],
   grid_validation: exerciseData.grid_validation as Exercise["grid_validation"],
-  time_constraints: exerciseData.time_constraints as Exercise["time_constraints"],
+  time_constraints:
+    exerciseData.time_constraints as Exercise["time_constraints"],
   completion: exerciseData.completion as Exercise["completion"],
   sets: typeof exerciseData.sets === "number" ? exerciseData.sets : undefined,
   reps: typeof exerciseData.reps === "number" ? exerciseData.reps : undefined,
-  duration: typeof exerciseData.duration === "number" ? exerciseData.duration : undefined,
+  duration:
+    typeof exerciseData.duration === "number"
+      ? exerciseData.duration
+      : undefined,
   recording_angles: Array.isArray(exerciseData.recording_angles)
     ? (exerciseData.recording_angles as RecordingAngle[])
     : [],
@@ -57,7 +67,7 @@ const mapExerciseJsonToDoc = (
     ? (exerciseData.tutor_points as RecordingPoint[])
     : Array.isArray(exerciseData.tutorPoints)
       ? (exerciseData.tutorPoints as RecordingPoint[])
-    : [],
+      : [],
   created_at: new Date().toISOString(),
 });
 
@@ -68,7 +78,10 @@ async function ensureSeedExercisesIfEmpty(): Promise<void> {
   }
 
   seedExercisesPromise = (async () => {
-    const existing = await exercisesDB.allDocs({ include_docs: false, limit: 1 });
+    const existing = await exercisesDB.allDocs({
+      include_docs: false,
+      limit: 1,
+    });
     if (existing.rows.length > 0) return;
 
     const modulePaths = Object.keys(exerciseJsonModules).sort();
@@ -217,10 +230,28 @@ export async function addExercise(
 
   // Debug: Log what's being saved
   console.log("[addExercise] Saving exercise with fields:", Object.keys(doc));
-  console.log("[addExercise] Has signals:", !!doc.signals, doc.signals ? Object.keys(doc.signals).length : 0);
-  console.log("[addExercise] Has event_graph:", !!doc.event_graph, doc.event_graph?.nodes?.length ?? 0, "nodes");
-  console.log("[addExercise] Has time_constraints:", !!doc.time_constraints, doc.time_constraints?.length ?? 0);
-  console.log("[addExercise] Has completion:", !!doc.completion, doc.completion?.terminal_nodes?.length ?? 0, "terminal nodes");
+  console.log(
+    "[addExercise] Has signals:",
+    !!doc.signals,
+    doc.signals ? Object.keys(doc.signals).length : 0,
+  );
+  console.log(
+    "[addExercise] Has event_graph:",
+    !!doc.event_graph,
+    doc.event_graph?.nodes?.length ?? 0,
+    "nodes",
+  );
+  console.log(
+    "[addExercise] Has time_constraints:",
+    !!doc.time_constraints,
+    doc.time_constraints?.length ?? 0,
+  );
+  console.log(
+    "[addExercise] Has completion:",
+    !!doc.completion,
+    doc.completion?.terminal_nodes?.length ?? 0,
+    "terminal nodes",
+  );
 
   try {
     const result = await exercisesDB.post(doc);
@@ -457,7 +488,7 @@ export function calculateRoutineStats(exercises: Exercise[]): {
  * Add a new routine to the database
  */
 export async function addRoutine(
-  routine: Omit<Routine, "_id" | "_rev" | "updatedAt">
+  routine: Omit<Routine, "_id" | "_rev" | "updatedAt">,
 ) {
   const doc: Routine = {
     ...routine,

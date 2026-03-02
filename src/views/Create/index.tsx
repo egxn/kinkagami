@@ -2,7 +2,10 @@ import { useState, useRef, useContext, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PoseContext from "../../context/PoseContext";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import { drawPosesOnCanvas, type PoseModelKind } from "../../utils/canvasDrawing";
+import {
+  drawPosesOnCanvas,
+  type PoseModelKind,
+} from "../../utils/canvasDrawing";
 import { calculateAllBodyAngles } from "../../utils/poseUtils";
 import { buildGridValidationDefinition } from "../../utils/gridValidation";
 import { addExercise } from "../../db/dbService";
@@ -32,7 +35,8 @@ export default function Create() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { detector } = useContext(PoseContext) || {};
-  const { detector: blazePoseDetector, isLoading: isBlazePoseLoading } = useBlazePose();
+  const { detector: blazePoseDetector, isLoading: isBlazePoseLoading } =
+    useBlazePose();
 
   // State
   const [videoUrl, setVideoUrl] = useState("");
@@ -41,7 +45,9 @@ export default function Create() {
   const [isSaving, setIsSaving] = useState(false);
   const [capturedData, setCapturedData] = useState<CapturedFrame[]>([]);
   const [tutorData, setTutorData] = useState<CapturedFrame[]>([]);
-  const [processingModel, setProcessingModel] = useState<"MoveNet" | "BlazePose" | null>(null);
+  const [processingModel, setProcessingModel] = useState<
+    "MoveNet" | "BlazePose" | null
+  >(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [videoDuration, setVideoDuration] = useState(0);
   const [timeRange, setTimeRange] = useState<[number, number]>([0, 0]);
@@ -77,8 +83,14 @@ export default function Create() {
     const canvas = canvasRef.current;
     if (!video || !canvas) return { width: 0, height: 0 };
 
-    const width = Math.max(1, Math.round(video.clientWidth || video.videoWidth || 1));
-    const height = Math.max(1, Math.round(video.clientHeight || video.videoHeight || 1));
+    const width = Math.max(
+      1,
+      Math.round(video.clientWidth || video.videoWidth || 1),
+    );
+    const height = Math.max(
+      1,
+      Math.round(video.clientHeight || video.videoHeight || 1),
+    );
     const dpr = window.devicePixelRatio || 1;
 
     const backingWidth = Math.max(1, Math.floor(width * dpr));
@@ -97,22 +109,22 @@ export default function Create() {
     return { width, height };
   }, []);
 
-  const drawCurrentPoses = useCallback((
-    poses: poseDetection.Pose[],
-    poseModel: PoseModelKind,
-  ) => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+  const drawCurrentPoses = useCallback(
+    (poses: poseDetection.Pose[], poseModel: PoseModelKind) => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
 
-    const { width, height } = syncCanvasToVideoDisplay();
-    drawPosesOnCanvas(canvas, video, poses, {
-      fitMode: "contain",
-      renderWidth: width,
-      renderHeight: height,
-      poseModel,
-    });
-  }, [syncCanvasToVideoDisplay]);
+      const { width, height } = syncCanvasToVideoDisplay();
+      drawPosesOnCanvas(canvas, video, poses, {
+        fitMode: "contain",
+        renderWidth: width,
+        renderHeight: height,
+        poseModel,
+      });
+    },
+    [syncCanvasToVideoDisplay],
+  );
 
   const ensureDetectorVideoDimensions = useCallback(
     (modelName: "MoveNet" | "BlazePose") => {
@@ -121,7 +133,8 @@ export default function Create() {
 
       if (video.videoWidth > 0 && video.videoHeight > 0) {
         if (video.width !== video.videoWidth) video.width = video.videoWidth;
-        if (video.height !== video.videoHeight) video.height = video.videoHeight;
+        if (video.height !== video.videoHeight)
+          video.height = video.videoHeight;
       }
 
       addLog(
@@ -131,32 +144,41 @@ export default function Create() {
     [],
   );
 
-  const summarizeFrames = useCallback((label: string, frames: CapturedFrame[]) => {
-    const first = frames[0];
-    const last = frames[frames.length - 1];
-    const samplePose = first?.poses?.[0];
-    const sampleKeypoints = samplePose?.keypoints?.length ?? 0;
+  const summarizeFrames = useCallback(
+    (label: string, frames: CapturedFrame[]) => {
+      const first = frames[0];
+      const last = frames[frames.length - 1];
+      const samplePose = first?.poses?.[0];
+      const sampleKeypoints = samplePose?.keypoints?.length ?? 0;
 
-    addLog(
-      `[${label}] frames=${frames.length}, firstTs=${first?.timestamp?.toFixed?.(3) ?? "n/a"}, lastTs=${last?.timestamp?.toFixed?.(3) ?? "n/a"}, samplePoseKeypoints=${sampleKeypoints}`,
-    );
+      addLog(
+        `[${label}] frames=${frames.length}, firstTs=${first?.timestamp?.toFixed?.(3) ?? "n/a"}, lastTs=${last?.timestamp?.toFixed?.(3) ?? "n/a"}, samplePoseKeypoints=${sampleKeypoints}`,
+      );
 
-    console.log(`[Create][${label}] summary`, {
-      frames: frames.length,
-      firstTimestamp: first?.timestamp ?? null,
-      lastTimestamp: last?.timestamp ?? null,
-      samplePoseKeypoints: sampleKeypoints,
-      samplePose,
-    });
-  }, []);
+      console.log(`[Create][${label}] summary`, {
+        frames: frames.length,
+        firstTimestamp: first?.timestamp ?? null,
+        lastTimestamp: last?.timestamp ?? null,
+        samplePoseKeypoints: sampleKeypoints,
+        samplePose,
+      });
+    },
+    [],
+  );
 
   // Preview skeleton detection (runs when video is paused/loaded)
   const detectAndDrawPreview = useCallback(async () => {
-    if (!videoRef.current || !detector || !canvasRef.current || isProcessingRef.current) return;
-    
+    if (
+      !videoRef.current ||
+      !detector ||
+      !canvasRef.current ||
+      isProcessingRef.current
+    )
+      return;
+
     try {
       const poses = await detector.estimatePoses(videoRef.current);
-      
+
       drawCurrentPoses(poses, "movenet");
     } catch (err) {
       console.error("Preview detection error:", err);
@@ -166,26 +188,30 @@ export default function Create() {
   // Preview loop during normal video playback (not processing)
   const startPreviewPlayback = () => {
     if (isProcessingRef.current) return;
-    
+
     const previewLoop = async () => {
       if (!videoRef.current || !detector || !canvasRef.current) return;
       if (videoRef.current.paused || videoRef.current.ended) return;
       if (isProcessingRef.current) return;
-      
+
       try {
         const poses = await detector.estimatePoses(videoRef.current);
-        
+
         drawCurrentPoses(poses, "movenet");
       } catch (err) {
         console.error("Preview playback error:", err);
       }
-      
+
       // Continue loop if still playing and not processing
-      if (!videoRef.current.paused && !videoRef.current.ended && !isProcessingRef.current) {
+      if (
+        !videoRef.current.paused &&
+        !videoRef.current.ended &&
+        !isProcessingRef.current
+      ) {
         previewRequestRef.current = requestAnimationFrame(previewLoop);
       }
     };
-    
+
     previewLoop();
   };
 
@@ -390,7 +416,9 @@ export default function Create() {
           `[${modelName}] Finished (${reason}). Frames: ${frames.length}. Elapsed: ${elapsedMs.toFixed(0)}ms`,
         );
         if (frames.length === 0) {
-          addLog(`[${modelName}] Warning: no poses detected in selected range.`);
+          addLog(
+            `[${modelName}] Warning: no poses detected in selected range.`,
+          );
         }
         resolve(frames);
       };
@@ -414,7 +442,9 @@ export default function Create() {
             return;
           }
 
-          fail(new Error(`[${modelName}] Processing stalled before end of range`));
+          fail(
+            new Error(`[${modelName}] Processing stalled before end of range`),
+          );
         }, 2500);
       };
 
@@ -540,10 +570,10 @@ export default function Create() {
     addLog(
       `Time range: ${timeRange[0].toFixed(2)}s - ${timeRange[1].toFixed(2)}s`,
     );
-    
+
     // Stop preview playback if running
     stopPreviewPlayback();
-    
+
     isProcessingRef.current = true;
     setIsProcessing(true);
     setProcessingModel("MoveNet");
@@ -554,7 +584,9 @@ export default function Create() {
       addLog("Processing selected range with MoveNet...");
       const movenetFrames = await processRangeWithDetector(detector, "MoveNet");
       setCapturedData(movenetFrames);
-      addLog(`MoveNet finished. Captured ${movenetFrames.length} valid frames.`);
+      addLog(
+        `MoveNet finished. Captured ${movenetFrames.length} valid frames.`,
+      );
       summarizeFrames("recording_points", movenetFrames);
 
       setProcessingModel("BlazePose");
@@ -566,7 +598,9 @@ export default function Create() {
         "BlazePose",
       );
       setTutorData(blazePoseFrames);
-      addLog(`BlazePose finished. Captured ${blazePoseFrames.length} valid frames.`);
+      addLog(
+        `BlazePose finished. Captured ${blazePoseFrames.length} valid frames.`,
+      );
       summarizeFrames("tutor_points", blazePoseFrames);
 
       const processedDuration = timeRange[1] - timeRange[0];
@@ -596,7 +630,9 @@ export default function Create() {
 
     // Keep processing flags intact while the 2-phase pipeline is running.
     if (isProcessingRef.current) {
-      addLog("Video reached end while processing; pipeline keeps control for next phase.");
+      addLog(
+        "Video reached end while processing; pipeline keeps control for next phase.",
+      );
       return;
     }
   };
@@ -647,8 +683,12 @@ export default function Create() {
       addLog(
         `Generated event graph: ${eventGraph.nodes.length} nodes, ${eventGraph.edges.length} edges`,
       );
-      addLog(`Detected ${Object.keys(signals).length} active signals: ${Object.keys(signals).join(", ") || "none"}`);
-      addLog(`Time constraints: ${timeConstraints.length}, Terminal nodes: ${completion.terminal_nodes.length}`);
+      addLog(
+        `Detected ${Object.keys(signals).length} active signals: ${Object.keys(signals).join(", ") || "none"}`,
+      );
+      addLog(
+        `Time constraints: ${timeConstraints.length}, Terminal nodes: ${completion.terminal_nodes.length}`,
+      );
       addLog(
         `Grid validation: ${gridValidation.rows}x${gridValidation.cols}, keypoints=${gridValidation.keypoints.length}`,
       );
@@ -749,7 +789,8 @@ export default function Create() {
                     processingModel === "BlazePose"
                       ? tutorData.length
                       : capturedData.length,
-                })} {processingModel ? `(${processingModel})` : ""}
+                })}{" "}
+                {processingModel ? `(${processingModel})` : ""}
               </div>
             )}
           </div>
@@ -767,7 +808,13 @@ export default function Create() {
             <button
               className="process-btn"
               onClick={startProcessing}
-              disabled={!videoUrl || isProcessing || !detector || !blazePoseDetector || isBlazePoseLoading}
+              disabled={
+                !videoUrl ||
+                isProcessing ||
+                !detector ||
+                !blazePoseDetector ||
+                isBlazePoseLoading
+              }
             >
               {isProcessing
                 ? `${t("button.processing")} (${processingModel ?? "MoveNet"})`
@@ -788,9 +835,9 @@ export default function Create() {
                   ? "Process a video first to capture data"
                   : tutorData.length === 0
                     ? "BlazePose processing is required before saving"
-                  : !isFormValid()
-                    ? t("create.log.fill_form")
-                    : t("button.save")
+                    : !isFormValid()
+                      ? t("create.log.fill_form")
+                      : t("button.save")
               }
             >
               {isSaving ? t("button.saving") : t("button.save")} (

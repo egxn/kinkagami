@@ -35,14 +35,18 @@ export default function ExerciseCard({
         borderBottomRightRadius: 0,
       }}
     >
-      <div className={`exercise-card ${isSelected ? "exercise-card--selected" : ""}`}>
+      <div
+        className={`exercise-card ${isSelected ? "exercise-card--selected" : ""}`}
+      >
         {isSelected ? (
           <div className="exercise-card__badge" aria-hidden="true">
             ✅
           </div>
         ) : null}
         <div className="exercise-card__left">
-          <h3 className="exercise-card__title">{exercise.name || "Sin nombre"}</h3>
+          <h3 className="exercise-card__title">
+            {exercise.name || "Sin nombre"}
+          </h3>
           <p className="exercise-card__description">
             {exercise.description || "Sin descripción"}
           </p>
@@ -55,7 +59,9 @@ export default function ExerciseCard({
               </span>
             )}
             {exercise.duration && (
-              <span className="exercise-card__duration">{exercise.duration}s</span>
+              <span className="exercise-card__duration">
+                {exercise.duration}s
+              </span>
             )}
             {exercise.reps && exercise.sets && (
               <span className="exercise-card__reps">

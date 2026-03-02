@@ -25,7 +25,10 @@ const toTimestamp = (value: unknown): number => {
   return 0;
 };
 
-const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -47,7 +50,9 @@ export interface UseRoutinesResult {
   routines: Routine[];
   loading: boolean;
   error: Error | null;
-  addNewRoutine: (routine: Omit<Routine, "_id" | "_rev" | "updatedAt">) => Promise<void>;
+  addNewRoutine: (
+    routine: Omit<Routine, "_id" | "_rev" | "updatedAt">,
+  ) => Promise<void>;
   updateRoutineData: (id: string, updates: Partial<Routine>) => Promise<void>;
   deleteRoutineData: (id: string) => Promise<void>;
   clearAllRoutinesData: () => Promise<number>;
@@ -78,7 +83,10 @@ export function useRoutines(): UseRoutinesResult {
         setLoading(true);
         setError(null);
       }
-      const data = await withTimeout(getAllRoutines(), ROUTINES_LOAD_TIMEOUT_MS);
+      const data = await withTimeout(
+        getAllRoutines(),
+        ROUTINES_LOAD_TIMEOUT_MS,
+      );
       // Newest first (resilient to legacy/corrupt date fields)
       data.sort(
         (a, b) =>
@@ -96,7 +104,8 @@ export function useRoutines(): UseRoutinesResult {
           name: routine.name ?? "Sin nombre",
           created_at: routine.created_at ?? null,
           updatedAt: routine.updatedAt ?? null,
-          exercisesCount: routine.items?.length ?? routine.exercises?.length ?? 0,
+          exercisesCount:
+            routine.items?.length ?? routine.exercises?.length ?? 0,
         })),
       });
     } catch (err) {

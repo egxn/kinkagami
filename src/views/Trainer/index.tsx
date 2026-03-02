@@ -24,7 +24,9 @@ export default function Trainer() {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [frameIndex, setFrameIndex] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [exerciseNameById, setExerciseNameById] = useState<Record<string, string>>({});
+  const [exerciseNameById, setExerciseNameById] = useState<
+    Record<string, string>
+  >({});
 
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -84,8 +86,7 @@ export default function Trainer() {
         const map: Record<string, string> = {};
         for (const ex of all) {
           if (ex._id) map[ex._id] = ex.name ?? ex.exercise_id ?? ex._id;
-          if (ex.exercise_id)
-            map[ex.exercise_id] = ex.name ?? ex.exercise_id;
+          if (ex.exercise_id) map[ex.exercise_id] = ex.name ?? ex.exercise_id;
         }
 
         setExerciseNameById(map);
@@ -141,7 +142,9 @@ export default function Trainer() {
       }
 
       if (!ex) {
-        throw new Error(`No se encontró el ejercicio: ${activeItem.exerciseId}`);
+        throw new Error(
+          `No se encontró el ejercicio: ${activeItem.exerciseId}`,
+        );
       }
 
       setCurrentExercise(ex);
@@ -281,7 +284,8 @@ export default function Trainer() {
           <Skeleton
             autoSize
             poses={
-              (currentExercise.tutor_points && currentExercise.tutor_points.length > 0
+              (currentExercise.tutor_points &&
+              currentExercise.tutor_points.length > 0
                 ? currentExercise.tutor_points
                 : currentExercise.recording_points)?.[frameIndex]?.poses ?? []
             }
@@ -306,7 +310,9 @@ export default function Trainer() {
                       idx === currentExerciseIndex ? "is-active" : ""
                     }`}
                   >
-                    <span className="trainer-view__routine-index">{idx + 1}.</span>
+                    <span className="trainer-view__routine-index">
+                      {idx + 1}.
+                    </span>
                     <span className="trainer-view__routine-name">{name}</span>
                   </li>
                 );
@@ -320,7 +326,9 @@ export default function Trainer() {
         )}
 
         <div className="trainer-view__status">
-          {loadingExercise && <div className="trainer-view__loading">Cargando ejercicio...</div>}
+          {loadingExercise && (
+            <div className="trainer-view__loading">Cargando ejercicio...</div>
+          )}
           {error && <div className="trainer-view__error">{error}</div>}
         </div>
       </div>

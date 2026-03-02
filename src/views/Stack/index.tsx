@@ -11,13 +11,8 @@ import "./Stack.scss";
 import Splash from "../Splash";
 
 export default function Stack() {
-  const {
-    routines,
-    loading,
-    error,
-    refreshRoutines,
-    deleteRoutineData,
-  } = useRoutines();
+  const { routines, loading, error, refreshRoutines, deleteRoutineData } =
+    useRoutines();
   const { selectedRoutine, setSelectedRoutine } = useRoutine();
 
   return (
@@ -32,7 +27,10 @@ export default function Stack() {
             loading ? (
               <div />
             ) : (
-              <Navigate to={routines.length > 0 ? "routines" : "exercises"} replace />
+              <Navigate
+                to={routines.length > 0 ? "routines" : "exercises"}
+                replace
+              />
             )
           }
         />

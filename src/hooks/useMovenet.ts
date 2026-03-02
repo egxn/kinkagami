@@ -67,7 +67,6 @@ export const useMovenet = (): UseMovenetReturn => {
             modelType,
             modelUrl: getMoveNetModelUrl(movenetVersion),
             enableSmoothing: true,
-            
           },
         );
 

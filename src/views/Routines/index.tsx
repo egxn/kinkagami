@@ -39,7 +39,10 @@ export function RoutinesView({
     goPrevious,
     goNext,
   } = usePagedCarousel(routines, ROUTINES_PER_PAGE);
-  const visibleSlots = [routinesToRender[0] ?? null, routinesToRender[1] ?? null] as const;
+  const visibleSlots = [
+    routinesToRender[0] ?? null,
+    routinesToRender[1] ?? null,
+  ] as const;
 
   logger.log("RoutinesView", "Render state", {
     loading,
@@ -61,10 +64,14 @@ export function RoutinesView({
         }}
         onDiscard={() => {
           if (!onDiscardRoutine) {
-            logger.log("RoutinesView", "Routine discard action ignored (no handler)", {
-              routineId: routine._id ?? null,
-              routineName: routine.name ?? null,
-            });
+            logger.log(
+              "RoutinesView",
+              "Routine discard action ignored (no handler)",
+              {
+                routineId: routine._id ?? null,
+                routineName: routine.name ?? null,
+              },
+            );
             return;
           }
 
@@ -81,10 +88,14 @@ export function RoutinesView({
         streamReady={streamReady}
         onAction={() => {
           if (!onDiscardRoutine) {
-            logger.log("RoutinesView", "Routine delete action ignored (no handler)", {
-              routineId: routine._id ?? null,
-              routineName: routine.name ?? null,
-            });
+            logger.log(
+              "RoutinesView",
+              "Routine delete action ignored (no handler)",
+              {
+                routineId: routine._id ?? null,
+                routineName: routine.name ?? null,
+              },
+            );
             return;
           }
 
@@ -137,7 +148,9 @@ export function RoutinesView({
       navButtonSize={200}
       footerButtonLabel="Nueva rutina"
       footerButtonOnAction={() => navigate("/stack/exercises")}
-      footerButtonOnDiscard={() => logger.log("RoutinesView", "New routine action discarded")}
+      footerButtonOnDiscard={() =>
+        logger.log("RoutinesView", "New routine action discarded")
+      }
       footerButtonClassName="routines-view__new-btn"
       footerButtonWidth="80%"
       footerButtonMinHeight={112}
@@ -147,13 +160,8 @@ export function RoutinesView({
 }
 
 export default function Routines() {
-  const {
-    routines,
-    loading,
-    error,
-    refreshRoutines,
-    deleteRoutineData,
-  } = useRoutines();
+  const { routines, loading, error, refreshRoutines, deleteRoutineData } =
+    useRoutines();
   const { selectedRoutine, setSelectedRoutine } = useRoutine();
   return (
     <RoutinesView

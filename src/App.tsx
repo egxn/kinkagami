@@ -57,7 +57,10 @@ function App() {
           >
             <HashRouter>
               <Routes>
-                <Route path="/" element={<Navigate to="/stack/splash" replace />} />
+                <Route
+                  path="/"
+                  element={<Navigate to="/stack/splash" replace />}
+                />
 
                 <Route path="/stack/*" element={<Stack />} />
 

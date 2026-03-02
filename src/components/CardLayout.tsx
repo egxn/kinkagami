@@ -109,7 +109,9 @@ export default function CardLayout({
                   videoRef={videoRef}
                   streamReady={streamReady}
                   onAction={onRetry}
-                  onDiscard={() => logger.log("CardLayout", "Retry action discarded")}
+                  onDiscard={() =>
+                    logger.log("CardLayout", "Retry action discarded")
+                  }
                   alignX="center"
                   style={{ width: 220, minHeight: 72 }}
                 >
@@ -122,15 +124,24 @@ export default function CardLayout({
           <div className="card-layout__empty">{emptyMessage}</div>
         ) : (
           <div className="card-layout__carousel">
-            <div className="card-layout__slot card-layout__slot--nav" style={{ flex: `0 0 ${navSlotWidth}px` }}>
+            <div
+              className="card-layout__slot card-layout__slot--nav"
+              style={{ flex: `0 0 ${navSlotWidth}px` }}
+            >
               {hasPrevious ? (
                 <Button
                   videoRef={videoRef}
                   streamReady={streamReady}
                   onAction={onPrevious}
-                  onDiscard={() => logger.log("CardLayout", "Previous action discarded")}
+                  onDiscard={() =>
+                    logger.log("CardLayout", "Previous action discarded")
+                  }
                   alignX="center"
-                  style={{ width: navButtonSize, minWidth: navButtonSize, minHeight: navButtonSize }}
+                  style={{
+                    width: navButtonSize,
+                    minWidth: navButtonSize,
+                    minHeight: navButtonSize,
+                  }}
                 >
                   <div className="card-layout__nav-label">←</div>
                 </Button>
@@ -142,7 +153,11 @@ export default function CardLayout({
               key={`${transitionDirection}-${transitionKey}`}
             >
               {slots.map((slot, slotIndex) => (
-                <div key={slotIndex} className="card-layout__slot card-layout__slot--card" style={{ flex: cardSlotFlex }}>
+                <div
+                  key={slotIndex}
+                  className="card-layout__slot card-layout__slot--card"
+                  style={{ flex: cardSlotFlex }}
+                >
                   <div className="card-layout__slot-column">
                     <div
                       className="card-layout__slot-content"
@@ -155,7 +170,9 @@ export default function CardLayout({
                           : { minHeight: slotMinHeight }
                       }
                     >
-                      {slot ?? <div className="card-layout__card-placeholder" />}
+                      {slot ?? (
+                        <div className="card-layout__card-placeholder" />
+                      )}
                     </div>
 
                     <div
@@ -170,7 +187,11 @@ export default function CardLayout({
                       }
                     >
                       <div className="card-layout__slot-actions-content">
-                        {actionSlots?.[slotIndex] ?? <div className="card-layout__slot-actions-empty">—</div>}
+                        {actionSlots?.[slotIndex] ?? (
+                          <div className="card-layout__slot-actions-empty">
+                            —
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -178,15 +199,24 @@ export default function CardLayout({
               ))}
             </div>
 
-            <div className="card-layout__slot card-layout__slot--nav" style={{ flex: `0 0 ${navSlotWidth}px` }}>
+            <div
+              className="card-layout__slot card-layout__slot--nav"
+              style={{ flex: `0 0 ${navSlotWidth}px` }}
+            >
               {hasNext ? (
                 <Button
                   videoRef={videoRef}
                   streamReady={streamReady}
                   onAction={onNext}
-                  onDiscard={() => logger.log("CardLayout", "Next action discarded")}
+                  onDiscard={() =>
+                    logger.log("CardLayout", "Next action discarded")
+                  }
                   alignX="center"
-                  style={{ width: navButtonSize, minWidth: navButtonSize, minHeight: navButtonSize }}
+                  style={{
+                    width: navButtonSize,
+                    minWidth: navButtonSize,
+                    minHeight: navButtonSize,
+                  }}
                 >
                   <div className="card-layout__nav-label">→</div>
                 </Button>

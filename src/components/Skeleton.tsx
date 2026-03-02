@@ -92,7 +92,10 @@ export default function Skeleton({
 
     const ro = new ResizeObserver(() => {
       const rect = el.getBoundingClientRect();
-      setMeasuredSize({ w: Math.round(rect.width), h: Math.round(rect.height) });
+      setMeasuredSize({
+        w: Math.round(rect.width),
+        h: Math.round(rect.height),
+      });
     });
 
     ro.observe(el);

@@ -18,11 +18,14 @@ function Canvas() {
   const [poses, setPoses] = useState<poseDetection.Pose[]>([]);
 
   const isSplashRoute =
-    location.pathname === "/splash" || location.pathname.endsWith("/stack/splash");
+    location.pathname === "/splash" ||
+    location.pathname.endsWith("/stack/splash");
   const isRoutinesRoute =
-    location.pathname === "/stack/routines" || location.pathname.endsWith("/routines");
+    location.pathname === "/stack/routines" ||
+    location.pathname.endsWith("/routines");
   const isExercisesRoute =
-    location.pathname === "/stack/exercises" || location.pathname.endsWith("/exercises");
+    location.pathname === "/stack/exercises" ||
+    location.pathname.endsWith("/exercises");
   const useHandPoseRoute = isSplashRoute || isRoutinesRoute || isExercisesRoute;
 
   const effectiveDetector = useHandPoseRoute ? null : detector;
@@ -51,12 +54,16 @@ function Canvas() {
   useEffect(() => {
     if (!useHandPoseRoute) return;
 
-    logger.log("Canvas", "HandPose route detected: using HandPose model in Canvas", {
-      path: location.pathname,
-      handModelLoading,
-      hasHandDetector: !!handDetector,
-      handModelError,
-    });
+    logger.log(
+      "Canvas",
+      "HandPose route detected: using HandPose model in Canvas",
+      {
+        path: location.pathname,
+        handModelLoading,
+        hasHandDetector: !!handDetector,
+        handModelError,
+      },
+    );
   }, [
     useHandPoseRoute,
     location.pathname,
