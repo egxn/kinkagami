@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -92,7 +92,7 @@ describe("useHandPose", () => {
       const state = useHandPose();
       useEffect(() => {
         onState(state as HandPoseState);
-      }, [state]);
+      }, [state, onState]);
       return <div>{state.status}</div>;
     }
 
@@ -131,9 +131,10 @@ describe("useHandPose", () => {
       landmarkModelUrl: "/models/handpose/landmark/full/model.json",
     });
 
-    expect(latest?.isLoading).toBe(false);
-    expect(latest?.error).toBeNull();
-    expect(latest?.status).toContain("successfully");
+    const state = latest as unknown as HandPoseState;
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.status).toContain("successfully");
   });
 
   it("normalizes dependency errors from detector init", async () => {
@@ -146,10 +147,11 @@ describe("useHandPose", () => {
       latest = state;
     });
 
-    expect(latest?.isLoading).toBe(false);
-    expect(latest?.error).toBe(
+    const state = latest as unknown as HandPoseState;
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toBe(
       "Missing dependency: install @tensorflow-models/hand-pose-detection and restart dev server.",
     );
-    expect(latest?.status).toContain("Error:");
+    expect(state.status).toContain("Error:");
   });
 });

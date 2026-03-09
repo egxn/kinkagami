@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { usePagedCarousel } from "../hooks/usePagedCarousel";
@@ -64,33 +64,39 @@ describe("usePagedCarousel", () => {
       );
     });
 
-    expect(latest?.pageItems).toEqual([1, 2]);
-    expect(latest?.startIndex).toBe(0);
-    expect(latest?.hasPrevious).toBe(false);
-    expect(latest?.hasNext).toBe(true);
+    let state = latest as unknown as ProbeState;
+    expect(state.pageItems).toEqual([1, 2]);
+    expect(state.startIndex).toBe(0);
+    expect(state.hasPrevious).toBe(false);
+    expect(state.hasNext).toBe(true);
 
     await act(async () => {
-      latest?.goNext();
+      state = latest as unknown as ProbeState;
+      state.goNext();
     });
 
-    expect(latest?.pageItems).toEqual([3, 4]);
-    expect(latest?.startIndex).toBe(2);
-    expect(latest?.hasPrevious).toBe(true);
-    expect(latest?.hasNext).toBe(true);
-    expect(latest?.transitionDirection).toBe("forward");
+    state = latest as unknown as ProbeState;
+    expect(state.pageItems).toEqual([3, 4]);
+    expect(state.startIndex).toBe(2);
+    expect(state.hasPrevious).toBe(true);
+    expect(state.hasNext).toBe(true);
+    expect(state.transitionDirection).toBe("forward");
 
     await act(async () => {
-      latest?.goPrevious();
+      state = latest as unknown as ProbeState;
+      state.goPrevious();
     });
 
-    expect(latest?.pageItems).toEqual([1, 2]);
-    expect(latest?.startIndex).toBe(0);
-    expect(latest?.hasPrevious).toBe(false);
-    expect(latest?.transitionDirection).toBe("backward");
+    state = latest as unknown as ProbeState;
+    expect(state.pageItems).toEqual([1, 2]);
+    expect(state.startIndex).toBe(0);
+    expect(state.hasPrevious).toBe(false);
+    expect(state.transitionDirection).toBe("backward");
   });
 
   it("clamps start index when list shrinks", async () => {
     let latest: ProbeState | null = null;
+    let state: ProbeState;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -108,12 +114,14 @@ describe("usePagedCarousel", () => {
     });
 
     await act(async () => {
-      latest?.goNext();
-      latest?.goNext();
+      state = latest as unknown as ProbeState;
+      state.goNext();
+      state.goNext();
     });
 
-    expect(latest?.startIndex).toBe(3);
-    expect(latest?.pageItems).toEqual([4, 5]);
+    state = latest as unknown as ProbeState;
+    expect(state.startIndex).toBe(3);
+    expect(state.pageItems).toEqual([4, 5]);
 
     await act(async () => {
       root.render(
@@ -127,8 +135,9 @@ describe("usePagedCarousel", () => {
       );
     });
 
-    expect(latest?.startIndex).toBe(1);
-    expect(latest?.pageItems).toEqual([11, 12]);
-    expect(latest?.hasNext).toBe(false);
+    state = latest as unknown as ProbeState;
+    expect(state.startIndex).toBe(1);
+    expect(state.pageItems).toEqual([11, 12]);
+    expect(state.hasNext).toBe(false);
   });
 });

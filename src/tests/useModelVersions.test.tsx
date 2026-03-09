@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { useModelVersions } from "../hooks/useModelVersions";
@@ -55,7 +55,8 @@ describe("useModelVersions", () => {
       );
     });
 
-    expect(latest?.config).toEqual(DEFAULT_MODEL_VERSIONS);
+    const state = latest as unknown as ProbeState;
+    expect(state.config).toEqual(DEFAULT_MODEL_VERSIONS);
     expect(container.textContent).toContain('"movenet":"lightning"');
   });
 
@@ -76,11 +77,13 @@ describe("useModelVersions", () => {
     });
 
     await act(async () => {
-      latest?.updateConfig({ movenet: "thunder", handpose: "full" });
+      const state = latest as unknown as ProbeState;
+      state.updateConfig({ movenet: "thunder", handpose: "full" });
     });
 
-    expect(latest?.config.movenet).toBe("thunder");
-    expect(latest?.config.handpose).toBe("full");
+    const state = latest as unknown as ProbeState;
+    expect(state.config.movenet).toBe("thunder");
+    expect(state.config.handpose).toBe("full");
 
     const raw = window.localStorage.getItem(MODEL_VERSIONS_STORAGE_KEY);
     expect(raw).toBeTruthy();
@@ -115,7 +118,8 @@ describe("useModelVersions", () => {
       window.dispatchEvent(new StorageEvent("storage", { key: MODEL_VERSIONS_STORAGE_KEY }));
     });
 
-    expect(latest?.config).toEqual({
+    const state = latest as unknown as ProbeState;
+    expect(state.config).toEqual({
       movenet: "thunder",
       blazepose: "heavy",
       handpose: "full",

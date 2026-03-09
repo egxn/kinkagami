@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { useAvailableVideos } from "../hooks/useAvailableVideos";
@@ -59,10 +59,11 @@ describe("useAvailableVideos", () => {
       await Promise.resolve();
     });
 
+    const state = latest as unknown as VideoState;
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/videos");
-    expect(latest?.loading).toBe(false);
-    expect(latest?.error).toBeNull();
-    expect(latest?.videos).toEqual(videos);
+    expect(state.loading).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.videos).toEqual(videos);
   });
 
   it("returns empty list without error on 404", async () => {
@@ -88,9 +89,10 @@ describe("useAvailableVideos", () => {
       await Promise.resolve();
     });
 
-    expect(latest?.loading).toBe(false);
-    expect(latest?.videos).toEqual([]);
-    expect(latest?.error).toBeNull();
+    const state = latest as unknown as VideoState;
+    expect(state.loading).toBe(false);
+    expect(state.videos).toEqual([]);
+    expect(state.error).toBeNull();
   });
 
   it("fails silently and keeps empty list on network errors", async () => {
@@ -113,9 +115,10 @@ describe("useAvailableVideos", () => {
       await Promise.resolve();
     });
 
-    expect(latest?.loading).toBe(false);
-    expect(latest?.videos).toEqual([]);
-    expect(latest?.error).toBeNull();
+    const state = latest as unknown as VideoState;
+    expect(state.loading).toBe(false);
+    expect(state.videos).toEqual([]);
+    expect(state.error).toBeNull();
     expect(consoleSpy).toHaveBeenCalled();
   });
 });

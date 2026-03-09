@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { useCamera } from "../hooks/useCamera";
@@ -65,12 +65,13 @@ describe("useCamera", () => {
       await Promise.resolve();
     });
 
+    const state = latest as unknown as CameraState;
     expect(getUserMedia).toHaveBeenCalledTimes(1);
-    expect(latest?.isReady).toBe(true);
-    expect(latest?.streamReady).toBe(true);
-    expect(latest?.error).toBeNull();
-    expect(latest?.stream).toBe(stream);
-    expect(typeof latest?.onStreamReady).toBe("function");
+    expect(state.isReady).toBe(true);
+    expect(state.streamReady).toBe(true);
+    expect(state.error).toBeNull();
+    expect(state.stream).toBe(stream);
+    expect(typeof state.onStreamReady).toBe("function");
 
     await act(async () => {
       root.unmount();
@@ -104,8 +105,9 @@ describe("useCamera", () => {
       await Promise.resolve();
     });
 
-    expect(latest?.isReady).toBe(false);
-    expect(latest?.streamReady).toBe(false);
-    expect(latest?.error).toContain("permission denied");
+    const state = latest as unknown as CameraState;
+    expect(state.isReady).toBe(false);
+    expect(state.streamReady).toBe(false);
+    expect(state.error).toContain("permission denied");
   });
 });

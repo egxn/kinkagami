@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -108,15 +108,16 @@ describe("useMovenet", () => {
       await Promise.resolve();
     });
 
+    const state = latest as unknown as MovenetState;
     expect(setBackendMock).toHaveBeenCalledWith("webgl");
     expect(createDetectorMock).toHaveBeenCalledWith("MoveNet", {
       modelType: "SINGLEPOSE_THUNDER",
       modelUrl: "mock-url-thunder",
       enableSmoothing: true,
     });
-    expect(latest?.isLoading).toBe(false);
-    expect(latest?.error).toBeNull();
-    expect(latest?.status).toContain("successfully");
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.status).toContain("successfully");
 
     await act(async () => {
       root.unmount();

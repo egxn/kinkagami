@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -70,7 +70,6 @@ function Probe({ onState }: { onState: (state: BlazePoseState) => void }) {
 describe("useBlazePose", () => {
   let container: HTMLDivElement;
   let root: Root;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -86,11 +85,6 @@ describe("useBlazePose", () => {
       estimatePoses: estimatePosesMock,
       dispose: disposeMock,
     });
-
-    fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({ ok: true } as Response)
-      .mockResolvedValueOnce({ ok: true } as Response);
   });
 
   afterEach(async () => {
@@ -106,6 +100,10 @@ describe("useBlazePose", () => {
   });
 
   it("loads blazepose and performs warmup inference", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({ ok: true } as Response)
+      .mockResolvedValueOnce({ ok: true } as Response);
+
     let latest: BlazePoseState | null = null;
 
     container = document.createElement("div");
@@ -144,9 +142,10 @@ describe("useBlazePose", () => {
     expect(zerosMock).toHaveBeenCalledWith([1, 1, 3]);
     expect(estimatePosesMock).toHaveBeenCalled();
 
-    expect(latest?.isLoading).toBe(false);
-    expect(latest?.error).toBeNull();
-    expect(latest?.status).toContain("successfully");
+    const state = latest as unknown as BlazePoseState;
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.status).toContain("successfully");
 
     await act(async () => {
       root.unmount();
@@ -155,8 +154,7 @@ describe("useBlazePose", () => {
   });
 
   it("surfaces error when detector model file is missing", async () => {
-    fetchSpy.mockReset();
-    fetchSpy.mockResolvedValueOnce({ ok: false } as Response);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({ ok: false } as Response);
 
     let latest: BlazePoseState | null = null;
 
@@ -175,9 +173,10 @@ describe("useBlazePose", () => {
       await Promise.resolve();
     });
 
-    expect(latest?.isLoading).toBe(false);
-    expect(latest?.error).toContain("Missing BlazePose detector model");
-    expect(latest?.status).toContain("Error:");
+    const state = latest as unknown as BlazePoseState;
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toContain("Missing BlazePose detector model");
+    expect(state.status).toContain("Error:");
     expect(createDetectorMock).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
-import React, { act, useEffect, useRef } from "react";
+import { act, useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { usePoseDetection } from "../hooks/usePoseDetection";
@@ -11,7 +12,7 @@ interface ProbeProps {
 }
 
 function Probe({ detector, modelLoading, streamReady, onPosesDetected }: ProbeProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const video = document.createElement("video");
@@ -22,7 +23,7 @@ function Probe({ detector, modelLoading, streamReady, onPosesDetected }: ProbePr
 
   usePoseDetection({
     detector: detector as never,
-    videoRef,
+    videoRef: videoRef as RefObject<HTMLVideoElement>,
     modelLoading,
     streamReady,
     onPosesDetected: onPosesDetected as never,

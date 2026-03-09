@@ -1,4 +1,4 @@
-import React, { act, useEffect } from "react";
+import { act, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { useRoutines } from "../hooks/useRoutines";
@@ -127,9 +127,10 @@ describe("useRoutines", () => {
     });
 
     expect(getAllRoutinesMock).toHaveBeenCalledTimes(1);
-    expect(latest?.loading).toBe(false);
-    expect(latest?.error).toBeNull();
-    expect(latest?.routines.map((routine) => routine._id)).toEqual([
+    const state = latest as unknown as RoutinesState;
+    expect(state.loading).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.routines.map((routine: Routine) => routine._id)).toEqual([
       "new",
       "old",
       "legacy",
@@ -166,7 +167,8 @@ describe("useRoutines", () => {
     });
 
     expect(getAllRoutinesMock).toHaveBeenCalledTimes(2);
-    expect(latest?.routines).toHaveLength(1);
+    const state = latest as unknown as RoutinesState;
+    expect(state.routines).toHaveLength(1);
   });
 
   it("sets error and rethrows when delete operation fails", async () => {
@@ -200,6 +202,7 @@ describe("useRoutines", () => {
 
     expect(thrown).toBeInstanceOf(Error);
     expect((thrown as Error).message).toBe("delete failed");
-    expect(latest?.error?.message).toBe("delete failed");
+    const state = latest as unknown as RoutinesState;
+    expect(state.error?.message).toBe("delete failed");
   });
 });
