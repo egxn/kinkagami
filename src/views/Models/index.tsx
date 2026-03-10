@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
+import { useTranslation } from "react-i18next";
 
 import Skeleton from "../../components/Skeleton";
 import usePoseContext from "../../context/usePoseContext";
 import {
   useBlazePose,
+  useAppConfig,
   useHandPose,
   useModelVersions,
   usePoseDetection,
@@ -35,6 +37,7 @@ function PoseModelCanvas({
   debugTag: string;
   debugVerbose?: boolean;
 }) {
+  const { t } = useTranslation();
   const [poses, setPoses] = useState<poseDetection.Pose[]>([]);
 
   const handlePosesDetected = useCallback((nextPoses: poseDetection.Pose[]) => {
@@ -62,9 +65,9 @@ function PoseModelCanvas({
         poseModel="auto"
       />
       <p style={{ marginTop: 8 }}>
-        {modelLoading && "Cargando modelo..."}
-        {!modelLoading && modelError && `Error: ${modelError}`}
-        {!modelLoading && !modelError && "Modelo listo. Detectando poses."}
+        {modelLoading && t("models.loading_model")}
+        {!modelLoading && modelError && `${t("common.error_prefix")}: ${modelError}`}
+        {!modelLoading && !modelError && t("models.model_ready_poses")}
       </p>
     </>
   );
@@ -87,6 +90,7 @@ function HandModelCanvas({
   streamReady: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
 }) {
+  const { t } = useTranslation();
   const {
     detector,
     isLoading: modelLoading,
@@ -195,9 +199,9 @@ function HandModelCanvas({
         <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />
       </div>
       <p style={{ marginTop: 8 }}>
-        {modelLoading && "Cargando modelo..."}
-        {!modelLoading && modelError && `Error: ${modelError}`}
-        {!modelLoading && !modelError && "Modelo listo. Detectando manos."}
+        {modelLoading && t("models.loading_model")}
+        {!modelLoading && modelError && `${t("common.error_prefix")}: ${modelError}`}
+        {!modelLoading && !modelError && t("models.model_ready_hands")}
       </p>
     </>
   );
@@ -230,6 +234,7 @@ function BlazePoseModelCanvas({
 }
 
 export default function Models() {
+  const { t } = useTranslation();
   const {
     cameraError,
     cameraReady,
@@ -242,13 +247,20 @@ export default function Models() {
   } = usePoseContext();
   const { config: modelVersions, updateConfig: updateModelVersions } =
     useModelVersions();
+  const { config: appConfig, patchConfig } = useAppConfig();
 
-  const [selectedModel, setSelectedModel] = useState<ModelOption>("blazepose");
+  const [selectedModel, setSelectedModel] = useState<ModelOption>(() => {
+    return appConfig.models.poseModel;
+  });
+
+  const activeModel: ModelOption =
+    selectedModel === "handpose" ? "handpose" : appConfig.models.poseModel;
 
   useEffect(() => {
     const video = videoRef.current;
     logger.log("Models", "Model selection changed", {
       selectedModel,
+      activeModel,
       streamReady,
       hasStream: !!stream,
       hasVideo: !!video,
@@ -256,7 +268,7 @@ export default function Models() {
       videoWidth: video?.videoWidth,
       videoHeight: video?.videoHeight,
     });
-  }, [selectedModel, streamReady, stream, videoRef]);
+  }, [activeModel, selectedModel, streamReady, stream, videoRef]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -288,10 +300,10 @@ export default function Models() {
   }, [stream, videoRef]);
 
   const selectedLabel = useMemo(() => {
-    if (selectedModel === "movenet") return "MoveNet";
-    if (selectedModel === "blazepose") return "BlazePose";
+    if (activeModel === "movenet") return "MoveNet";
+    if (activeModel === "blazepose") return "BlazePose";
     return "HandPose";
-  }, [selectedModel]);
+  }, [activeModel]);
 
   return (
     <div
@@ -311,11 +323,22 @@ export default function Models() {
           marginBottom: 12,
         }}
       >
-        <label htmlFor="model-selector">Modelo</label>
+        <label htmlFor="model-selector">{t("models.model")}</label>
         <select
           id="model-selector"
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value as ModelOption)}
+          value={activeModel}
+          onChange={(e) => {
+            const next = e.target.value as ModelOption;
+            setSelectedModel(next);
+
+            if (next === "movenet" || next === "blazepose") {
+              patchConfig({
+                models: {
+                  poseModel: next,
+                },
+              });
+            }
+          }}
           style={{ padding: "8px 10px" }}
         >
           <option value="movenet">MoveNet</option>
@@ -323,62 +346,82 @@ export default function Models() {
           <option value="handpose">HandPose</option>
         </select>
 
+        {activeModel === "movenet" && (
+          <>
+            <label htmlFor="movenet-version">{t("models.movenet_version")}</label>
+            <select
+              id="movenet-version"
+              value={modelVersions.movenet}
+              onChange={(e) => {
+                const movenet = e.target.value as MoveNetVersion;
+                updateModelVersions({ movenet });
+                patchConfig({
+                  models: {
+                    movenet,
+                  },
+                });
+              }}
+              style={{ padding: "8px 10px" }}
+            >
+              <option value="lightning">lightning ({t("models.lightweight")})</option>
+              <option value="thunder">thunder</option>
+            </select>
+          </>
+        )}
+
+        {activeModel === "blazepose" && (
+          <>
+            <label htmlFor="blazepose-version">{t("models.blazepose_version")}</label>
+            <select
+              id="blazepose-version"
+              value={modelVersions.blazepose}
+              onChange={(e) => {
+                const blazepose = e.target.value as BlazePoseVersion;
+                updateModelVersions({
+                  blazepose,
+                });
+                patchConfig({
+                  models: {
+                    blazepose,
+                  },
+                });
+              }}
+              style={{ padding: "8px 10px" }}
+            >
+              <option value="lite">lite ({t("models.lightweight")})</option>
+              <option value="full">full</option>
+              <option value="heavy">heavy</option>
+            </select>
+          </>
+        )}
+
+        {activeModel === "handpose" && (
+          <>
+            <label htmlFor="handpose-version">{t("models.handpose_version")}</label>
+            <select
+              id="handpose-version"
+              value={modelVersions.handpose}
+              onChange={(e) => {
+                const handpose = e.target.value as HandPoseVersion;
+                updateModelVersions({ handpose });
+                patchConfig({
+                  models: {
+                    handpose,
+                  },
+                });
+              }}
+              style={{ padding: "8px 10px" }}
+            >
+              <option value="lite">lite ({t("models.lightweight")})</option>
+              <option value="full">full</option>
+            </select>
+          </>
+        )}
+
         <span>
-          Camara: {cameraReady ? "lista" : "inicializando"}
+          {t("common.camera")}: {cameraReady ? t("common.ready") : t("common.initializing")}
           {cameraError ? ` (${cameraError})` : ""}
         </span>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          marginBottom: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <label htmlFor="movenet-version">MoveNet versión</label>
-        <select
-          id="movenet-version"
-          value={modelVersions.movenet}
-          onChange={(e) =>
-            updateModelVersions({ movenet: e.target.value as MoveNetVersion })
-          }
-          style={{ padding: "8px 10px" }}
-        >
-          <option value="lightning">lightning (liviano)</option>
-          <option value="thunder">thunder</option>
-        </select>
-
-        <label htmlFor="blazepose-version">BlazePose versión</label>
-        <select
-          id="blazepose-version"
-          value={modelVersions.blazepose}
-          onChange={(e) =>
-            updateModelVersions({
-              blazepose: e.target.value as BlazePoseVersion,
-            })
-          }
-          style={{ padding: "8px 10px" }}
-        >
-          <option value="lite">lite (liviano)</option>
-          <option value="full">full</option>
-          <option value="heavy">heavy</option>
-        </select>
-
-        <label htmlFor="handpose-version">HandPose versión</label>
-        <select
-          id="handpose-version"
-          value={modelVersions.handpose}
-          onChange={(e) =>
-            updateModelVersions({ handpose: e.target.value as HandPoseVersion })
-          }
-          style={{ padding: "8px 10px" }}
-        >
-          <option value="lite">lite (liviano)</option>
-          <option value="full">full</option>
-        </select>
       </div>
 
       <div
@@ -392,7 +435,7 @@ export default function Models() {
           transform: "scaleX(-1)",
         }}
       >
-        {selectedModel === "movenet" && (
+        {activeModel === "movenet" && (
           <PoseModelCanvas
             detector={movenetDetector}
             modelLoading={movenetModelLoading}
@@ -403,11 +446,11 @@ export default function Models() {
           />
         )}
 
-        {selectedModel === "blazepose" && (
+        {activeModel === "blazepose" && (
           <BlazePoseModelCanvas streamReady={streamReady} videoRef={videoRef} />
         )}
 
-        {selectedModel === "handpose" && (
+        {activeModel === "handpose" && (
           <HandModelCanvas streamReady={streamReady} videoRef={videoRef} />
         )}
       </div>
@@ -423,7 +466,7 @@ export default function Models() {
           padding: "8px 10px",
         }}
       >
-        Validando: {selectedLabel}
+        {t("models.validating_model")}: {selectedLabel}
         <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9 }}>
           MoveNet: {modelVersions.movenet} · BlazePose:{" "}
           {modelVersions.blazepose} · HandPose: {modelVersions.handpose}

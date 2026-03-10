@@ -10,14 +10,20 @@ import Player from "./views/Player";
 import Settings from "./views/Settings";
 import Stack from "./views/Stack";
 import Summary from "./views/Summary";
+import Config from "./views/Config";
+import DevInfoSnackbar from "./components/DevInfoSnackbar";
 import HandCursorOverlay from "./components/HandCursorOverlay";
+import { ensureAppConfigInStorage } from "./utils/appConfig";
 
 import "./App.css";
 
 function App() {
+  const isDev = import.meta.env.DEV;
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    ensureAppConfigInStorage();
+
     const root = document.documentElement;
     const savedTheme = localStorage.getItem("kgm-theme");
 
@@ -32,6 +38,7 @@ function App() {
     <PoseProvider videoRef={videoRef}>
       <RoutineProvider>
         <HandCursorOverlay />
+        {isDev && <DevInfoSnackbar />}
         <div
           style={{
             height: "100vh",
@@ -65,12 +72,32 @@ function App() {
                 <Route path="/stack/*" element={<Stack />} />
 
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/models" element={<Models />} />
+                <Route path="/config" element={<Config />} />
                 <Route path="/error" element={<Error />} />
                 <Route path="/summary" element={<Summary />} />
 
-                <Route path="/create" element={<Create />} />
-                <Route path="/player" element={<Player />} />
+                {isDev ? (
+                  <>
+                    <Route path="/models" element={<Models />} />
+                    <Route path="/create" element={<Create />} />
+                    <Route path="/player" element={<Player />} />
+                  </>
+                ) : (
+                  <>
+                    <Route
+                      path="/models"
+                      element={<Navigate to="/stack/splash" replace />}
+                    />
+                    <Route
+                      path="/create"
+                      element={<Navigate to="/stack/splash" replace />}
+                    />
+                    <Route
+                      path="/player"
+                      element={<Navigate to="/stack/splash" replace />}
+                    />
+                  </>
+                )}
               </Routes>
             </HashRouter>
           </div>

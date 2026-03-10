@@ -3,6 +3,7 @@
     "create": "Create",
     "cancel": "Cancel",
     "load": "Load",
+    "go_to_player": "Go to Player",
     "process": "Start Processing",
     "processing": "Processing...",
     "download": "Download JSON",
@@ -28,7 +29,7 @@
     "log": {
       "loaded": "Loaded video: {{url}}",
       "error_processing": "Error processing frame: {{error}}",
-      "not_ready": "Video or Detector not ready",
+      "not_ready": "Video or detector is not ready",
       "starting": "Starting processing...",
       "fallback": "Browser doesn't support requestVideoFrameCallback. Using fallback (less accurate).",
       "error_playback": "Error starting playback: {{error}}",
@@ -52,5 +53,70 @@
       "intermediate": "Intermediate",
       "advanced": "Advanced"
     }
+  },
+  "common": {
+    "retry": "Retry",
+    "unnamed": "Unnamed",
+    "no_description": "No description",
+    "camera": "Camera",
+    "ready": "ready",
+    "initializing": "initializing",
+    "error_prefix": "Error"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure language, camera, and runtime mode here."
+  },
+  "error_view": {
+    "title": "Error",
+    "description": "An error occurred during initialization.",
+    "camera_error": "Camera error",
+    "model_error": "Model error"
+  },
+  "splash": {
+    "start": "Start"
+  },
+  "models": {
+    "model": "Model",
+    "movenet_version": "MoveNet version",
+    "blazepose_version": "BlazePose version",
+    "handpose_version": "HandPose version",
+    "lightweight": "lightweight",
+    "loading_model": "Loading model...",
+    "model_ready_poses": "Model ready. Detecting poses.",
+    "model_ready_hands": "Model ready. Detecting hands.",
+    "validating_model": "Validating model"
+  },
+  "routines": {
+    "title": "Routines",
+    "delete": "Delete",
+    "loading": "Loading routines...",
+    "empty": "No saved routines",
+    "error_prefix": "Error loading routines:",
+    "new_routine": "New routine"
+  },
+  "routine_card": {
+    "exercises_count": "{{count}} exercises"
+  },
+  "exercises": {
+    "title": "Exercises",
+    "loading": "Loading exercises...",
+    "empty": "No exercises available",
+    "error_prefix": "Error loading exercises:",
+    "reps_plus": "Reps: {{count}} (+)",
+    "create_routine": "Create routine ({{count}})",
+    "saving": "Saving...",
+    "routine_name": "Routine {{date}}",
+    "routine_description": "{{count}} exercises"
+  },
+  "trainer": {
+    "no_routine": "No routine selected",
+    "routine_without_exercises": "The routine has no exercises",
+    "exercise_not_found": "Exercise not found: {{id}}",
+    "routine_label": "Routine",
+    "loading_exercise": "Loading exercise...",
+    "score_status": "Score ({{mode}}): {{score}} / {{threshold}}",
+    "rep_progress": "Repetitions: {{current}} / {{total}}",
+    "routine_complete": "Routine complete"
   }
 }

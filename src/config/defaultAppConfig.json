@@ -1,0 +1,19 @@
+{
+  "models": {
+    "poseModel": "movenet",
+    "movenet": "lightning",
+    "blazepose": "lite",
+    "handpose": "lite"
+  },
+  "camera": {
+    "flow": "web",
+    "source": "web",
+    "streamUrl": "http://localhost:8090/?action=stream"
+  },
+  "runtime": {
+    "execution": "workers"
+  },
+  "evaluation": {
+    "type": "fsm"
+  }
+}

@@ -222,8 +222,9 @@ export const usePoseDetection = ({
         }
       } finally {
         isDetectingRef.current = false;
-        if (loopId !== loopIdRef.current) return;
-        detectionTimeoutRef.current = setTimeout(detectLoop, FRAME_INTERVAL);
+        if (loopId === loopIdRef.current) {
+          detectionTimeoutRef.current = setTimeout(detectLoop, FRAME_INTERVAL);
+        }
       }
     };
 

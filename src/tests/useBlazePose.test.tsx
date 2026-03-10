@@ -3,28 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 
 const {
-  setBackendMock,
-  readyMock,
-  getBackendMock,
-  zerosMock,
   createDetectorMock,
   disposeMock,
-  estimatePosesMock,
 } = vi.hoisted(() => ({
-  setBackendMock: vi.fn(),
-  readyMock: vi.fn(),
-  getBackendMock: vi.fn(),
-  zerosMock: vi.fn(),
   createDetectorMock: vi.fn(),
   disposeMock: vi.fn(),
-  estimatePosesMock: vi.fn(),
-}));
-
-vi.mock("@tensorflow/tfjs", () => ({
-  setBackend: setBackendMock,
-  ready: readyMock,
-  getBackend: getBackendMock,
-  zeros: zerosMock,
 }));
 
 vi.mock("@tensorflow-models/pose-detection", () => ({
@@ -73,16 +56,7 @@ describe("useBlazePose", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    setBackendMock.mockResolvedValue(undefined);
-    readyMock.mockResolvedValue(undefined);
-    getBackendMock.mockReturnValue("webgl");
-
-    const warmTensor = { dispose: vi.fn() };
-    zerosMock.mockReturnValue(warmTensor);
-
-    estimatePosesMock.mockResolvedValue([]);
     createDetectorMock.mockResolvedValue({
-      estimatePoses: estimatePosesMock,
       dispose: disposeMock,
     });
   });
@@ -99,8 +73,9 @@ describe("useBlazePose", () => {
     }
   });
 
-  it("loads blazepose and performs warmup inference", async () => {
+  it("loads blazepose using local mediapipe assets", async () => {
     vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({ ok: true } as Response)
       .mockResolvedValueOnce({ ok: true } as Response)
       .mockResolvedValueOnce({ ok: true } as Response);
 
@@ -121,26 +96,27 @@ describe("useBlazePose", () => {
       await Promise.resolve();
     });
 
-    expect(setBackendMock).toHaveBeenCalledWith("webgl");
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
       1,
-      "/models/blazepose/detector/model.json",
+      "/models/blazepose/mediapipe/pose_solution_wasm_bin.wasm",
       { method: "HEAD" },
     );
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
       2,
-      "/models/blazepose/landmark/full/model.json",
+      "/models/blazepose/mediapipe/pose_web.binarypb",
+      { method: "HEAD" },
+    );
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      3,
+      "/models/blazepose/mediapipe/pose_landmark_full.tflite",
       { method: "HEAD" },
     );
     expect(createDetectorMock).toHaveBeenCalledWith("BlazePose", {
-      runtime: "tfjs",
+      runtime: "mediapipe",
       modelType: "full",
-      detectorModelUrl: "/models/blazepose/detector/model.json",
-      landmarkModelUrl: "/models/blazepose/landmark/full/model.json",
+      solutionPath: "/models/blazepose/mediapipe",
       enableSmoothing: true,
     });
-    expect(zerosMock).toHaveBeenCalledWith([1, 1, 3]);
-    expect(estimatePosesMock).toHaveBeenCalled();
 
     const state = latest as unknown as BlazePoseState;
     expect(state.isLoading).toBe(false);
@@ -153,7 +129,7 @@ describe("useBlazePose", () => {
     expect(disposeMock).toHaveBeenCalledTimes(1);
   });
 
-  it("surfaces error when detector model file is missing", async () => {
+  it("surfaces error when mediapipe assets are missing", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({ ok: false } as Response);
 
     let latest: BlazePoseState | null = null;
@@ -175,7 +151,7 @@ describe("useBlazePose", () => {
 
     const state = latest as unknown as BlazePoseState;
     expect(state.isLoading).toBe(false);
-    expect(state.error).toContain("Missing BlazePose detector model");
+    expect(state.error).toContain("Missing BlazePose MediaPipe asset");
     expect(state.status).toContain("Error:");
     expect(createDetectorMock).not.toHaveBeenCalled();
   });

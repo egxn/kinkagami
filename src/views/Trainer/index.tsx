@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Pose } from "@tensorflow-models/pose-detection";
+import { useTranslation } from "react-i18next";
 import Skeleton from "../../components/Skeleton";
 import { getAllExercises, getExerciseById } from "../../db/dbService";
 import { useRoutine } from "../../context/useRoutine";
 import usePoseContext from "../../context/usePoseContext";
-import { usePoseDetection } from "../../hooks";
+import { useAppConfig, usePoseDetection } from "../../hooks";
 import { useSessionComparison } from "../../context/useSessionComparison";
 import type { Exercise, RoutineExerciseItem } from "../../types/exercise";
 import { logger } from "../../utils/logger";
 
 import "./Trainer.scss";
 
+const SCORE_THRESHOLD = 80;
+const SCORE_RELEASE_THRESHOLD = 70;
+
 export default function Trainer() {
+  const { t } = useTranslation();
   const LOG_TAG = "FSM_COMPARE";
   const { selectedRoutine } = useRoutine();
+  const { config } = useAppConfig();
   const { detector, videoRef, modelLoading, streamReady } = usePoseContext();
   const { setExercise, processPose, reset, snapshot } = useSessionComparison();
 
@@ -22,8 +28,10 @@ export default function Trainer() {
   const [error, setError] = useState<string | null>(null);
   const [currentExercise, setCurrentExercise] = useState<Exercise | null>(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [currentRepCount, setCurrentRepCount] = useState(0);
   const [frameIndex, setFrameIndex] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [routineCompleted, setRoutineCompleted] = useState(false);
   const [exerciseNameById, setExerciseNameById] = useState<
     Record<string, string>
   >({});
@@ -31,6 +39,7 @@ export default function Trainer() {
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastSignalsLogAtRef = useRef(0);
+  const repCompletionLockedRef = useRef(false);
 
   const routineItems = useMemo<RoutineExerciseItem[]>(() => {
     if (!selectedRoutine) return [];
@@ -44,15 +53,41 @@ export default function Trainer() {
   }, [selectedRoutine]);
 
   const activeItem = routineItems[currentExerciseIndex];
+  const targetReps = Math.max(1, activeItem?.reps ?? 1);
+  const evaluationType = config.evaluation.type;
+
+  const scorePercent = useMemo(() => {
+    if (evaluationType === "grid") {
+      if (Number.isFinite(snapshot.gridScore)) return snapshot.gridScore;
+      return Math.round((snapshot.gridProgress ?? 0) * 100);
+    }
+
+    const nodeScorePercent =
+      snapshot.totalNodes > 0 ? (snapshot.score / snapshot.totalNodes) * 100 : 0;
+    const completionPercent = (snapshot.completion ?? 0) * 100;
+    const rawScore = Number.isFinite(snapshot.score) ? snapshot.score : 0;
+
+    return Math.max(nodeScorePercent, completionPercent, rawScore);
+  }, [
+    evaluationType,
+    snapshot.completion,
+    snapshot.gridProgress,
+    snapshot.gridScore,
+    snapshot.score,
+    snapshot.totalNodes,
+  ]);
 
   useEffect(() => {
     // Reset session when routine changes
     setStarted(false);
     setCurrentExercise(null);
     setCurrentExerciseIndex(0);
+    setCurrentRepCount(0);
     setFrameIndex(0);
     setCountdown(routineItems.length > 0 ? 5 : null);
+    setRoutineCompleted(false);
     setError(null);
+    repCompletionLockedRef.current = false;
     reset();
   }, [selectedRoutine?._id, routineItems.length, reset]);
 
@@ -115,13 +150,67 @@ export default function Trainer() {
     };
   }, [stopPlayback]);
 
+  const completeCurrentRep = useCallback(() => {
+    if (!activeItem) return;
+
+    const nextRepCount = currentRepCount + 1;
+    if (nextRepCount < targetReps) {
+      setCurrentRepCount(nextRepCount);
+      setFrameIndex(0);
+      startTimeRef.current = performance.now();
+      reset();
+      return;
+    }
+
+    const hasNextExercise = currentExerciseIndex < routineItems.length - 1;
+    if (hasNextExercise) {
+      setCurrentExerciseIndex((prev) => prev + 1);
+      setCurrentRepCount(0);
+      setStarted(false);
+      setCurrentExercise(null);
+      setFrameIndex(0);
+      setCountdown(0);
+      reset();
+      return;
+    }
+
+    setRoutineCompleted(true);
+    setStarted(false);
+    setCurrentExercise(null);
+    setFrameIndex(0);
+    setCountdown(null);
+    reset();
+  }, [
+    activeItem,
+    currentExerciseIndex,
+    currentRepCount,
+    reset,
+    routineItems.length,
+    targetReps,
+  ]);
+
+  useEffect(() => {
+    if (!started || !currentExercise || routineCompleted) return;
+
+    if (scorePercent >= SCORE_THRESHOLD && !repCompletionLockedRef.current) {
+      repCompletionLockedRef.current = true;
+      completeCurrentRep();
+    }
+  }, [completeCurrentRep, currentExercise, routineCompleted, scorePercent, started]);
+
+  useEffect(() => {
+    if (scorePercent <= SCORE_RELEASE_THRESHOLD) {
+      repCompletionLockedRef.current = false;
+    }
+  }, [scorePercent]);
+
   const start = useCallback(async () => {
     if (!selectedRoutine) {
-      setError("No hay una rutina seleccionada");
+      setError(t("trainer.no_routine"));
       return;
     }
     if (!activeItem?.exerciseId) {
-      setError("La rutina no tiene ejercicios");
+      setError(t("trainer.routine_without_exercises"));
       return;
     }
 
@@ -142,9 +231,7 @@ export default function Trainer() {
       }
 
       if (!ex) {
-        throw new Error(
-          `No se encontró el ejercicio: ${activeItem.exerciseId}`,
-        );
+        throw new Error(t("trainer.exercise_not_found", { id: activeItem.exerciseId }));
       }
 
       setCurrentExercise(ex);
@@ -158,7 +245,7 @@ export default function Trainer() {
     } finally {
       setLoadingExercise(false);
     }
-  }, [activeItem?.exerciseId, selectedRoutine]);
+  }, [activeItem?.exerciseId, selectedRoutine, t]);
 
   useEffect(() => {
     if (countdown == null) return;
@@ -298,7 +385,7 @@ export default function Trainer() {
       <div className="trainer-view__ui">
         <div className="trainer-view__actions trainer-view__actions--top-right">
           <div className="trainer-view__routine-overlay">
-            <div className="trainer-view__routine-title">Rutina</div>
+            <div className="trainer-view__routine-title">{t("trainer.routine_label")}</div>
             <ul className="trainer-view__routine-list">
               {routineItems.map((item, idx) => {
                 const name =
@@ -326,8 +413,28 @@ export default function Trainer() {
         )}
 
         <div className="trainer-view__status">
+          {started && !routineCompleted && (
+            <div className="trainer-view__score">
+              {t("trainer.score_status", {
+                mode: evaluationType,
+                score: Math.round(scorePercent),
+                threshold: SCORE_THRESHOLD,
+              })}
+            </div>
+          )}
+          {started && !routineCompleted && (
+            <div className="trainer-view__rep-progress">
+              {t("trainer.rep_progress", {
+                current: currentRepCount,
+                total: targetReps,
+              })}
+            </div>
+          )}
+          {routineCompleted && (
+            <div className="trainer-view__complete">{t("trainer.routine_complete")}</div>
+          )}
           {loadingExercise && (
-            <div className="trainer-view__loading">Cargando ejercicio...</div>
+            <div className="trainer-view__loading">{t("trainer.loading_exercise")}</div>
           )}
           {error && <div className="trainer-view__error">{error}</div>}
         </div>

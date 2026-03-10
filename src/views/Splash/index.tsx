@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Button from "../../components/Button";
 import { logger } from "../../utils/logger";
 import usePoseContext from "../../context/usePoseContext";
 
 function Splash() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { cameraError, cameraReady, streamReady, videoRef } = usePoseContext();
 
@@ -40,7 +42,7 @@ function Splash() {
         onDiscard={handleDiscard}
         alignX="center"
       >
-        <div>Start</div>
+        <div>{t("splash.start")}</div>
       </Button>
     </div>
   );

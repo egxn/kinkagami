@@ -21,7 +21,12 @@ const exerciseJsonModules = import.meta.glob<{
   default: Record<string, unknown>;
 }>("./exercises/*.json");
 
+const routineJsonModules = import.meta.glob<{
+  default: Record<string, unknown>;
+}>("./routines/*.json");
+
 let seedExercisesPromise: Promise<void> | null = null;
+let seedRoutinesPromise: Promise<void> | null = null;
 
 const mapExerciseJsonToDoc = (
   exerciseData: Record<string, unknown>,
@@ -71,6 +76,95 @@ const mapExerciseJsonToDoc = (
   created_at: new Date().toISOString(),
 });
 
+const defaultRoutineStats: Routine["stats"] = {
+  bodyParts: {
+    nose: 0,
+    ear: 0,
+    shoulder: 0,
+    elbow: 0,
+    wrist: 0,
+    hip: 0,
+    knee: 0,
+    ankle: 0,
+  },
+  muscleGroups: [],
+};
+
+const mapRoutineJsonToDoc = (
+  routineData: Record<string, unknown>,
+): Omit<Routine, "_id" | "_rev" | "updatedAt"> => {
+  const items = Array.isArray(routineData.items)
+    ? routineData.items
+        .map((item) => {
+          const source = item as { exerciseId?: unknown; reps?: unknown };
+          if (typeof source.exerciseId !== "string") return null;
+          return {
+            exerciseId: source.exerciseId,
+            reps:
+              typeof source.reps === "number" && source.reps > 0
+                ? source.reps
+                : 1,
+          };
+        })
+        .filter(
+          (item): item is { exerciseId: string; reps: number } => item != null,
+        )
+    : [];
+
+  const exercises = Array.isArray(routineData.exercises)
+    ? routineData.exercises.filter(
+        (exerciseId): exerciseId is string => typeof exerciseId === "string",
+      )
+    : items.map((item) => item.exerciseId);
+
+  const routineName =
+    typeof routineData.name === "string"
+      ? routineData.name
+      : typeof routineData._id === "string"
+        ? routineData._id
+        : "Routine";
+
+  const routineDescription =
+    typeof routineData.description === "string"
+      ? routineData.description
+      : undefined;
+
+  const sourceStats = routineData.stats as Routine["stats"] | undefined;
+  const stats: Routine["stats"] = sourceStats
+    ? {
+        bodyParts: {
+          nose: sourceStats.bodyParts?.nose ?? 0,
+          ear: sourceStats.bodyParts?.ear ?? 0,
+          shoulder: sourceStats.bodyParts?.shoulder ?? 0,
+          elbow: sourceStats.bodyParts?.elbow ?? 0,
+          wrist: sourceStats.bodyParts?.wrist ?? 0,
+          hip: sourceStats.bodyParts?.hip ?? 0,
+          knee: sourceStats.bodyParts?.knee ?? 0,
+          ankle: sourceStats.bodyParts?.ankle ?? 0,
+        },
+        muscleGroups: Array.isArray(sourceStats.muscleGroups)
+          ? sourceStats.muscleGroups
+          : [],
+      }
+    : defaultRoutineStats;
+
+  return {
+    name: routineName,
+    description: routineDescription,
+    exercises,
+    items,
+    time:
+      typeof routineData.time === "number" && routineData.time >= 0
+        ? routineData.time
+        : 0,
+    stats,
+    created_at:
+      typeof routineData.created_at === "string"
+        ? routineData.created_at
+        : new Date().toISOString(),
+  };
+};
+
 async function ensureSeedExercisesIfEmpty(): Promise<void> {
   if (seedExercisesPromise) {
     await seedExercisesPromise;
@@ -107,6 +201,44 @@ async function ensureSeedExercisesIfEmpty(): Promise<void> {
     await seedExercisesPromise;
   } finally {
     seedExercisesPromise = null;
+  }
+}
+
+async function ensureSeedRoutinesIfEmpty(): Promise<void> {
+  if (seedRoutinesPromise) {
+    await seedRoutinesPromise;
+    return;
+  }
+
+  seedRoutinesPromise = (async () => {
+    const existing = await routinesDB.allDocs({
+      include_docs: false,
+      limit: 1,
+    });
+    if (existing.rows.length > 0) return;
+
+    const modulePaths = Object.keys(routineJsonModules).sort();
+    if (modulePaths.length === 0) {
+      return;
+    }
+
+    for (const modulePath of modulePaths) {
+      try {
+        const module = await routineJsonModules[modulePath]();
+        const routineData = module.default;
+        if (!routineData || typeof routineData !== "object") continue;
+
+        await addRoutine(mapRoutineJsonToDoc(routineData));
+      } catch (error) {
+        console.error(`Error seeding routine from ${modulePath}:`, error);
+      }
+    }
+  })();
+
+  try {
+    await seedRoutinesPromise;
+  } finally {
+    seedRoutinesPromise = null;
   }
 }
 
@@ -511,6 +643,7 @@ export async function addRoutine(
  */
 export async function getAllRoutines(): Promise<Routine[]> {
   try {
+    await ensureSeedRoutinesIfEmpty();
     const result = await routinesDB.allDocs({ include_docs: true });
     return (
       result.rows
@@ -542,6 +675,7 @@ export async function getAllRoutines(): Promise<Routine[]> {
  */
 export async function getRoutineById(id: string): Promise<Routine> {
   try {
+    await ensureSeedRoutinesIfEmpty();
     const doc = (await routinesDB.get(id)) as Routine;
 
     if (doc && !doc.items && Array.isArray(doc.exercises)) {

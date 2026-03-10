@@ -179,6 +179,7 @@ export default function Skeleton({
     frameIndex,
     opacity,
     poses,
+    poseModel,
     size.h,
     size.w,
     variant,

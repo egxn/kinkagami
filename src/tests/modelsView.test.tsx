@@ -17,6 +17,25 @@ vi.mock("../context/usePoseContext", () => ({
 vi.mock("../hooks", () => ({
   useBlazePose: () => ({ detector: null, isLoading: false, error: null, status: "ok" }),
   useHandPose: () => ({ detector: null, isLoading: false, error: null, status: "ok" }),
+  useAppConfig: () => ({
+    config: {
+      models: {
+        poseModel: "blazepose",
+        movenet: "lightning",
+        blazepose: "lite",
+        handpose: "lite",
+      },
+      camera: {
+        flow: "web",
+        source: "web",
+        streamUrl: "http://localhost:8090/?action=stream",
+      },
+      runtime: { execution: "workers" },
+      evaluation: { type: "fsm" },
+    },
+    patchConfig: vi.fn(),
+    replaceConfig: vi.fn(),
+  }),
   useModelVersions: () => ({
     config: { movenet: "lightning", blazepose: "lite", handpose: "lite" },
     updateConfig: vi.fn(),
@@ -31,14 +50,11 @@ vi.mock("../components/Skeleton", () => ({
 import Models from "../views/Models";
 
 describe("Models view", () => {
-  it("renders model and version selectors", () => {
+  it("renders model selector and selected model variation selector", () => {
     const html = renderToStaticMarkup(<Models />);
 
     expect(html).toContain("Modelo");
-    expect(html).toContain("MoveNet versión");
     expect(html).toContain("BlazePose versión");
-    expect(html).toContain("HandPose versión");
-    expect(html).toContain("lightning (liviano)");
     expect(html).toContain("lite (liviano)");
   });
 });

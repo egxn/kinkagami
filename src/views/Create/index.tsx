@@ -739,9 +739,11 @@ export default function Create() {
     <div className="create-view">
       <div className="create-header">
         <h1>{t("create.title")}</h1>
-        <button className="goto-player-btn" onClick={() => navigate("/player")}>
-          {t("button.go_to_player") || "Go to Player"} →
-        </button>
+        {import.meta.env.DEV && (
+          <button className="goto-player-btn" onClick={() => navigate("/player")}>
+            {t("button.go_to_player") || "Go to Player"} →
+          </button>
+        )}
       </div>
 
       <div className="main-content">

@@ -11,6 +11,7 @@ import {
   SessionComparisonContext,
 } from "./SessionComparisonContextDef";
 import { logger } from "../utils/logger";
+import { getAppConfig } from "../utils/appConfig";
 import type {
   SessionComparatorWorkerRequest,
   SessionComparatorWorkerResponse,
@@ -69,6 +70,14 @@ export function SessionComparisonProvider({
   );
 
   const enableWorker = useCallback(() => {
+    const appConfig = getAppConfig();
+    if (appConfig.runtime.execution !== "workers") {
+      workerEnabledRef.current = false;
+      workerRef.current = null;
+      ensureMainThreadComparator();
+      return;
+    }
+
     if (workerRef.current || typeof Worker === "undefined") {
       return;
     }
@@ -118,9 +127,14 @@ export function SessionComparisonProvider({
   }, [LOG_TAG, ensureMainThreadComparator]);
 
   useEffect(() => {
-    enableWorker();
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      enableWorker();
+    });
 
     return () => {
+      active = false;
       workerEnabledRef.current = false;
       if (workerRef.current) {
         workerRef.current.terminate();

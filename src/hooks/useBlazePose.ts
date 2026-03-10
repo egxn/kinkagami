@@ -1,16 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 
-import * as tf from "@tensorflow/tfjs";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import "@tensorflow/tfjs-backend-webgl";
-import "@tensorflow/tfjs-backend-wasm";
 
 import { useModelVersions } from "./useModelVersions";
 import { logger } from "../utils/logger";
-import {
-  getBlazePoseDetectorUrl,
-  getBlazePoseLandmarkUrl,
-} from "../utils/modelVersions";
 
 interface UseBlazePoseReturn {
   detector: poseDetection.PoseDetector | null;
@@ -19,111 +12,127 @@ interface UseBlazePoseReturn {
   status: string;
 }
 
+const BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH = "/models/blazepose/mediapipe";
+
+let sharedDetector: poseDetection.PoseDetector | null = null;
+let sharedInitPromise: Promise<poseDetection.PoseDetector> | null = null;
+let sharedInitConfigKey: string | null = null;
+let sharedInitError: string | null = null;
+let sharedStatus = "Initializing BlazePose...";
+let activeConsumers = 0;
+
+const assertAssetExists = async (assetPath: string) => {
+  const check = await fetch(assetPath, { method: "HEAD" });
+  if (!check.ok) {
+    throw new Error(`Missing BlazePose MediaPipe asset at ${assetPath}`);
+  }
+};
+
+const initializeSharedDetector = async (
+  version: "lite" | "full" | "heavy",
+): Promise<poseDetection.PoseDetector> => {
+  const configKey = `blazepose:mediapipe:${version}`;
+
+  if (sharedDetector && sharedInitConfigKey === configKey) {
+    return sharedDetector;
+  }
+
+  if (sharedInitPromise && sharedInitConfigKey === configKey) {
+    return sharedInitPromise;
+  }
+
+  if (sharedDetector && sharedInitConfigKey !== configKey) {
+    try {
+      sharedDetector.dispose();
+    } catch {
+      // noop
+    }
+    sharedDetector = null;
+  }
+
+  sharedInitConfigKey = configKey;
+  sharedInitPromise = (async () => {
+    try {
+      sharedStatus = "Configuring BlazePose (MediaPipe runtime)...";
+      logger.log("useBlazePose", sharedStatus);
+
+      await assertAssetExists(
+        `${BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH}/pose_solution_wasm_bin.wasm`,
+      );
+      await assertAssetExists(
+        `${BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH}/pose_web.binarypb`,
+      );
+      await assertAssetExists(
+        `${BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH}/pose_landmark_${version}.tflite`,
+      );
+
+      const loadedDetector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.BlazePose,
+        {
+          runtime: "mediapipe",
+          modelType: version,
+          solutionPath: BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH,
+          enableSmoothing: true,
+        },
+      );
+
+      sharedDetector = loadedDetector;
+      sharedInitError = null;
+      sharedStatus = "Model loaded successfully!";
+      logger.log(
+        "useBlazePose",
+        "BlazePose loaded from local MediaPipe assets",
+      );
+      return loadedDetector;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      sharedInitError = message;
+      sharedStatus = `Error: ${message}`;
+      logger.error("useBlazePose", "Error:", message);
+      throw new Error(message);
+    } finally {
+      sharedInitPromise = null;
+    }
+  })();
+
+  return sharedInitPromise;
+};
+
 export const useBlazePose = (): UseBlazePoseReturn => {
   const {
     config: { blazepose: blazeposeVersion },
   } = useModelVersions();
-  const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
+  const detectorRef = useRef<poseDetection.PoseDetector | null>(sharedDetector);
   const [detector, setDetector] = useState<poseDetection.PoseDetector | null>(
-    null,
+    sharedDetector,
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState("Initializing TensorFlow...");
+  const [isLoading, setIsLoading] = useState(
+    !sharedDetector && !sharedInitError,
+  );
+  const [error, setError] = useState<string | null>(sharedInitError);
+  const [status, setStatus] = useState(sharedStatus);
 
   useEffect(() => {
     let mounted = true;
+    activeConsumers += 1;
 
     const loadModel = async () => {
       try {
-        const configStatus = "Configuring TensorFlow.js...";
-        if (mounted) setStatus(configStatus);
-        logger.log("useBlazePose", configStatus);
-
-        try {
-          await tf.setBackend("webgl");
-          await tf.ready();
-          logger.log("useBlazePose", tf.getBackend() + " backend is ready");
-        } catch {
-          logger.log("useBlazePose", "WebGL failed, falling back to WASM");
-          await tf.setBackend("wasm");
-          await tf.ready();
-          logger.log(
-            "useBlazePose",
-            tf.getBackend() + " backend is ready (fallback)",
-          );
-        }
-
-        const loadStatus = `Loading BlazePose model (${blazeposeVersion})...`;
-        if (mounted) setStatus(loadStatus);
-        logger.log("useBlazePose", loadStatus);
-        logger.log("useBlazePose", "BlazePose offline config", {
-          runtime: "tfjs",
-          modelType: blazeposeVersion,
-          backend: tf.getBackend(),
-        });
-
-        const detectorUrl = getBlazePoseDetectorUrl();
-        const landmarkUrl = getBlazePoseLandmarkUrl(blazeposeVersion);
-
-        const detectorCheck = await fetch(detectorUrl, {
-          method: "HEAD",
-        });
-        if (!detectorCheck.ok) {
-          throw new Error(
-            `Missing BlazePose detector model at ${detectorUrl}. ` +
-              "Add detector files under /public/models/blazepose/detector/.",
-          );
-        }
-
-        const landmarkCheck = await fetch(landmarkUrl, {
-          method: "HEAD",
-        });
-        if (!landmarkCheck.ok) {
-          throw new Error(
-            `Missing BlazePose landmark model at ${landmarkUrl}. ` +
-              "Add landmark files under /public/models/blazepose/.",
-          );
-        }
-
-        const loadedDetector = await poseDetection.createDetector(
-          poseDetection.SupportedModels.BlazePose,
-          {
-            runtime: "tfjs",
-            modelType: blazeposeVersion,
-            detectorModelUrl: detectorUrl,
-            landmarkModelUrl: landmarkUrl,
-            enableSmoothing: true,
-          },
+        setIsLoading(true);
+        setError(null);
+        setStatus(`Loading BlazePose model (${blazeposeVersion})...`);
+        logger.log(
+          "useBlazePose",
+          `Loading BlazePose model (${blazeposeVersion})...`,
         );
-        logger.log("useBlazePose", "BlazePose loaded from offline models");
+        logger.log("useBlazePose", "BlazePose offline config", {
+          runtime: "mediapipe",
+          modelType: blazeposeVersion,
+          solutionPath: BLAZEPOSE_MEDIAPIPE_SOLUTION_PATH,
+        });
 
-        if (!mounted) {
-          loadedDetector.dispose();
-          return;
-        }
-
-        // Warmup inference: compile WebGL shaders ahead of real detection
-        if (mounted) setStatus("Warming up model...");
-        logger.log("useBlazePose", "Running warmup inference...");
-        try {
-          const warmupTensor = tf.zeros([1, 1, 3]) as tf.Tensor3D;
-          await loadedDetector.estimatePoses(warmupTensor);
-          warmupTensor.dispose();
-          logger.log("useBlazePose", "Warmup inference completed");
-        } catch (warmupErr) {
-          // Warmup error is non-fatal; shaders compile on first real frame
-          logger.warn(
-            "useBlazePose",
-            "Warmup inference failed (non-fatal):",
-            warmupErr,
-          );
-        }
-
-        if (!mounted) {
-          loadedDetector.dispose();
-          return;
-        }
+        const loadedDetector = await initializeSharedDetector(blazeposeVersion);
+        if (!mounted) return;
 
         detectorRef.current = loadedDetector;
         setDetector(loadedDetector);
@@ -132,7 +141,7 @@ export const useBlazePose = (): UseBlazePoseReturn => {
         logger.log("useBlazePose", successStatus);
         logger.log("useBlazePose", "Detector instance ready", {
           hasDetector: !!loadedDetector,
-          backend: tf.getBackend(),
+          runtime: "mediapipe",
         });
         setIsLoading(false);
         setError(null);
@@ -140,7 +149,6 @@ export const useBlazePose = (): UseBlazePoseReturn => {
         if (!mounted) return;
         const errorMessage =
           err instanceof Error ? err.message : "Error loading model";
-        logger.error("useBlazePose", "Error:", errorMessage);
         setError(errorMessage);
         setStatus(`Error: ${errorMessage}`);
         setIsLoading(false);
@@ -151,10 +159,18 @@ export const useBlazePose = (): UseBlazePoseReturn => {
 
     return () => {
       mounted = false;
-      if (detectorRef.current) {
+      detectorRef.current = null;
+      activeConsumers -= 1;
+
+      if (activeConsumers <= 0 && sharedDetector && !sharedInitPromise) {
         logger.log("useBlazePose", "Disposing BlazePose detector");
-        detectorRef.current.dispose();
-        detectorRef.current = null;
+        try {
+          sharedDetector.dispose();
+        } catch {
+          // noop
+        }
+        sharedDetector = null;
+        sharedInitConfigKey = null;
       }
       setDetector(null);
     };

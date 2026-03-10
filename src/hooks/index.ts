@@ -8,3 +8,4 @@ export { useRoutines } from "./useRoutines";
 export { useAvailableVideos } from "./useAvailableVideos";
 export { usePagedCarousel } from "./usePagedCarousel";
 export { useModelVersions } from "./useModelVersions";
+export { useAppConfig } from "./useAppConfig";

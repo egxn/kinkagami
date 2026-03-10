@@ -1,5 +1,6 @@
 import "./Routines.scss";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import RoutineCard from "../../components/RoutineCard";
 import CardLayout from "../../components/CardLayout";
 import { useRoutines } from "../../hooks/useRoutines";
@@ -27,6 +28,7 @@ export function RoutinesView({
   onRetry,
   onDiscardRoutine,
 }: RoutinesViewProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setSelectedRoutine } = useRoutine();
   const { videoRef, streamReady } = usePoseContext();
@@ -117,7 +119,7 @@ export function RoutinesView({
           borderTopRightRadius: 0,
         }}
       >
-        <div>Eliminar</div>
+        <div>{t("routines.delete")}</div>
       </Button>
     ) : null,
   );
@@ -125,13 +127,13 @@ export function RoutinesView({
   return (
     <CardLayout
       className="routines-view"
-      title="Rutinas"
+      title={t("routines.title")}
       loading={loading}
       error={error}
       isEmpty={routinesToRender.length === 0}
-      loadingMessage="Cargando rutinas..."
-      emptyMessage="No hay rutinas guardadas"
-      errorPrefix="Error cargando rutinas:"
+      loadingMessage={t("routines.loading")}
+      emptyMessage={t("routines.empty")}
+      errorPrefix={t("routines.error_prefix")}
       onRetry={onRetry}
       hasPrevious={hasPrevious}
       hasNext={hasNext}
@@ -146,7 +148,7 @@ export function RoutinesView({
       cardSlotHeightPercent={78}
       actionSlotHeightPercent={22}
       navButtonSize={200}
-      footerButtonLabel="Nueva rutina"
+      footerButtonLabel={t("routines.new_routine")}
       footerButtonOnAction={() => navigate("/stack/exercises")}
       footerButtonOnDiscard={() =>
         logger.log("RoutinesView", "New routine action discarded")

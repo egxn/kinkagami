@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-03-09T23:14:31.831Z",
+  "sourceDatabases": {
+    "exercises": "exercises",
+    "routines": "routines"
+  },
+  "counts": {
+    "exercises": 0,
+    "routines": 0
+  },
+  "output": {
+    "exercises": "src/db/exercises",
+    "routines": "src/db/routines"
+  }
+}

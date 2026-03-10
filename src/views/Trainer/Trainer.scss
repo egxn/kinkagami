@@ -117,6 +117,26 @@
   font-size: 13px;
 }
 
+.trainer-view__score,
+.trainer-view__rep-progress {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.trainer-view__complete {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(17, 120, 75, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
 .trainer-view__error {
   margin-top: 0;
   color: #b00020;

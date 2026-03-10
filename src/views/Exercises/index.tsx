@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { Exercise } from "../../types/exercise";
 import {
   getAllExercises,
@@ -22,6 +23,7 @@ interface ExercisesProps {
 }
 
 export default function Exercises({ onRoutineCreated }: ExercisesProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { videoRef, streamReady } = usePoseContext();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -116,7 +118,7 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
           borderTopRightRadius: 0,
         }}
       >
-        <div>Reps: {currentReps} (+)</div>
+        <div>{t("exercises.reps_plus", { count: currentReps })}</div>
       </Button>
     );
   });
@@ -166,8 +168,12 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
       const { stats, totalTime } = calculateRoutineStats(selectedExercises);
 
       await addRoutine({
-        name: `Rutina ${new Date().toLocaleDateString()}`,
-        description: `${selectedExercises.length} ejercicios`,
+        name: t("exercises.routine_name", {
+          date: new Date().toLocaleDateString(),
+        }),
+        description: t("exercises.routine_description", {
+          count: selectedExercises.length,
+        }),
         exercises: selectedIds,
         items: selectedIds.map((exerciseId: string) => ({
           exerciseId,
@@ -200,12 +206,12 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
   return (
     <CardLayout
       className="exercises-view"
-      title="Descripción"
+      title={t("exercises.title")}
       loading={loading}
       isEmpty={visibleExercises.length === 0}
-      loadingMessage="Cargando ejercicios..."
-      emptyMessage="No hay ejercicios disponibles"
-      errorPrefix="Error cargando ejercicios:"
+      loadingMessage={t("exercises.loading")}
+      emptyMessage={t("exercises.empty")}
+      errorPrefix={t("exercises.error_prefix")}
       hasPrevious={hasPrevious}
       hasNext={hasNext}
       onPrevious={goPrevious}
@@ -220,7 +226,9 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
       actionSlotHeightPercent={22}
       navButtonSize={200}
       footerButtonLabel={
-        saving ? "Guardando..." : `Crear Rutina (${selectedCount})`
+        saving
+          ? t("exercises.saving")
+          : t("exercises.create_routine", { count: selectedCount })
       }
       footerButtonOnAction={() => {
         void handleCreateRoutine();

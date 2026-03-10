@@ -1,4 +1,5 @@
 import type { Exercise } from "../types/exercise";
+import { useTranslation } from "react-i18next";
 import Button from "./Button";
 import usePoseContext from "../context/usePoseContext";
 import { logger } from "../utils/logger";
@@ -15,6 +16,7 @@ export default function ExerciseCard({
   isSelected,
   onClick,
 }: ExerciseCardProps) {
+  const { t } = useTranslation();
   const { videoRef, streamReady } = usePoseContext();
 
   return (
@@ -45,10 +47,10 @@ export default function ExerciseCard({
         ) : null}
         <div className="exercise-card__left">
           <h3 className="exercise-card__title">
-            {exercise.name || "Sin nombre"}
+            {exercise.name || t("common.unnamed")}
           </h3>
           <p className="exercise-card__description">
-            {exercise.description || "Sin descripción"}
+            {exercise.description || t("common.no_description")}
           </p>
           <div className="exercise-card__meta">
             {exercise.difficulty && (

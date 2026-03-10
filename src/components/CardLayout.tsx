@@ -1,6 +1,7 @@
 import Button from "./Button";
 import usePoseContext from "../context/usePoseContext";
 import { logger } from "../utils/logger";
+import { useTranslation } from "react-i18next";
 import "./CardLayout.scss";
 
 export interface CardLayoutProps {
@@ -89,6 +90,7 @@ export default function CardLayout({
   secondaryFooterButtonMinHeight = 112,
   secondaryFooterButtonDisabled = false,
 }: CardLayoutProps) {
+  const { t } = useTranslation();
   const { videoRef, streamReady } = usePoseContext();
 
   return (
@@ -115,7 +117,7 @@ export default function CardLayout({
                   alignX="center"
                   style={{ width: 220, minHeight: 72 }}
                 >
-                  <div>Reintentar</div>
+                  <div>{t("common.retry")}</div>
                 </Button>
               </div>
             ) : null}

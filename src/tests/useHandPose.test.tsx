@@ -92,7 +92,7 @@ describe("useHandPose", () => {
       const state = useHandPose();
       useEffect(() => {
         onState(state as HandPoseState);
-      }, [state, onState]);
+      }, [state]);
       return <div>{state.status}</div>;
     }
 

@@ -1,4 +1,5 @@
 import type { Routine } from "../types/exercise";
+import { useTranslation } from "react-i18next";
 import Button from "./Button";
 import usePoseContext from "../context/usePoseContext";
 import { logger } from "../utils/logger";
@@ -19,6 +20,7 @@ export default function RoutineCard({
   onDoubleClick,
   onDiscard,
 }: RoutineCardProps) {
+  const { t } = useTranslation();
   const { videoRef, streamReady } = usePoseContext();
   const count = routine.items?.length ?? routine.exercises?.length ?? 0;
   const handleAction = onDoubleClick ?? onClick ?? (() => {});
@@ -48,12 +50,16 @@ export default function RoutineCard({
       <div
         className={`routine-card ${isSelected ? "routine-card--selected" : ""}`}
       >
-        <h3 className="routine-card__title">{routine.name || "Sin nombre"}</h3>
+        <h3 className="routine-card__title">
+          {routine.name || t("common.unnamed")}
+        </h3>
         <p className="routine-card__description">
-          {routine.description || "Sin descripción"}
+          {routine.description || t("common.no_description")}
         </p>
         <div className="routine-card__meta">
-          <span className="routine-card__pill">{count} ejercicios</span>
+          <span className="routine-card__pill">
+            {t("routine_card.exercises_count", { count })}
+          </span>
           <span className="routine-card__pill">
             {Math.round(routine.time ?? 0)}s
           </span>

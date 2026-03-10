@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteExercise, getAllExercises } from "../../db/dbService";
 import type { Exercise } from "../../types/exercise";
@@ -74,13 +74,13 @@ export default function Player() {
     void loadRecords();
   }, []);
 
-  const stopPlayback = () => {
+  const stopPlayback = useCallback(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
     setIsPlaying(false);
-  };
+  }, []);
 
   const selectRecord = (record: Exercise) => {
     if (isPlaying) {
@@ -110,10 +110,8 @@ export default function Player() {
 
   useEffect(() => {
     setCurrentFrameIndex(0);
-    if (isPlaying) {
-      stopPlayback();
-    }
-  }, [playbackSource]);
+    stopPlayback();
+  }, [playbackSource, stopPlayback]);
 
   const startPlayback = () => {
     if (!selectedRecord || activeFrames.length === 0) return;
@@ -135,7 +133,6 @@ export default function Player() {
     const startFrameTimestamp = frames[startIndex].timestamp;
     // Convert to milliseconds for performance.now() comparison
     const startOffsetMs = (startFrameTimestamp - baseTimestamp) * 1000;
-    // eslint-disable-next-line react-hooks/purity -- performance.now() is only called from event handler
     startTimeRef.current = performance.now() - startOffsetMs / playbackSpeed;
 
     const animate = (currentTime: number) => {

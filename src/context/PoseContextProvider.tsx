@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import React from "react";
-import { useCamera, useMovenet } from "../hooks";
+import { useAppConfig, useCamera, useMovenet } from "../hooks";
 import PoseContext from "./PoseContext";
 
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ export const PoseProvider = ({
 }: PoseProviderProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
+  const { config: appConfig } = useAppConfig();
 
   const {
     stream,
@@ -24,7 +25,10 @@ export const PoseProvider = ({
     isReady: cameraReady,
     onStreamReady,
     streamReady,
-  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
+  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>, {
+    flow: appConfig.camera.source,
+    streamUrl: appConfig.camera.streamUrl,
+  });
   const { detector, isLoading: modelLoading, error: modelError } = useMovenet();
 
   const value = useMemo<PoseContextType>(

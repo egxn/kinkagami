@@ -1,228 +1,162 @@
-# 🪞 Smart Fitness Mirror – Architecture
+# Smart Fitness Mirror - Architecture
 
-This document describes the high-level architecture of the **Smart Fitness Mirror** system. The focus is on **offline-first**, **deterministic behavior**, and **performance on embedded hardware (Radxa-class SBC)**.
+This document describes the implemented architecture for the Smart Fitness Mirror project. The current system is optimized for offline execution, deterministic validation, and limited SBC-class hardware.
 
 ---
 
 ## 1. System Goals
 
-- Run fully **offline**
-- Respect user **privacy** (no cloud by default)
-- Work on **limited hardware**
-- Allow **iterative exercise design**
-- Separate **logic, rendering, and data**
+- Run fully offline (no cloud dependency)
+- Preserve privacy by keeping data local
+- Keep UI responsive on limited hardware
+- Use versioned JSON exercise definitions as source of truth
+- Separate detection, validation, rendering, and persistence
 
 ---
 
-## 2. High-Level Overview
-
-The system is composed of five main layers:
-
-1. Pose Inference
-2. Validation Engine (FSM + Graphs)
-3. Rendering Engine
-4. Local API
-5. Local Storage
+## 2. Runtime Topology
 
 ```mermaid
 graph TD
-  Camera --> PoseModel
-  PoseModel --> Worker
-  Worker -->|Validation State| Renderer
-  Worker -->|Events| LocalAPI
-  LocalAPI --> MobileUI
-  LocalAPI --> LocalDB
+  Camera --> PoseInference
+  PoseInference --> SessionComparator
+  SessionComparator --> TrainerUI
+  SessionComparator --> LocalDB
+  LocalDB --> Views
 ```
+
+Main subsystems:
+
+1. Pose inference (MoveNet / BlazePose / HandPose)
+2. Session comparator (FSM + graph + grid metrics)
+3. Trainer flow (score threshold, rep progression, routine progression)
+4. Local persistence layer
+5. Configuration layer (`/config` + localStorage)
 
 ---
 
-## 3. Runtime Architecture
+## 3. Main Thread and Worker Strategy
 
-### 3.1 Main Thread vs Workers
-
-The main UI thread is kept lightweight. Heavy computation runs in Web Workers.
+The project supports runtime execution mode via app config: `workers` or `site`.
 
 ```mermaid
 graph LR
-  MainThread[Main Thread]
-  Worker[Worker Thread]
-
-  MainThread -->|Pose Frames| Worker
-  Worker -->|Draw Instructions| MainThread
-  Worker -->|State Updates| MainThread
+  UI[Main Thread UI] --> PoseLoop
+  PoseLoop --> Comparator
+  Comparator --> UI
+  PoseLoop --> MoveNetWorker
 ```
 
-**Main Thread responsibilities:**
+Current implementation:
 
-- Canvas rendering
-- UI state
-- Camera capture
-- Network I/O
+- MoveNet can run in a dedicated worker (worker-first path with fallback)
+- Session comparator runtime can be switched between worker and site modes
+- BlazePose runs in browser with local MediaPipe runtime (offline assets)
+- Rendering and camera stream remain on main thread
 
-**Worker responsibilities:**
-
-- Pose normalization
-- FSM execution
-- Graph traversal
-- Temporal constraint validation
-- Scoring
+This hybrid model keeps critical UI interactions stable while offloading selected heavy tasks.
 
 ---
 
-## 4. Pose Processing Pipeline
+## 4. Pose and Validation Pipeline
 
 ```mermaid
 graph TD
-  RawPose[Raw Pose Keypoints]
-  NormalizedPose[Normalized Pose]
-  AngleCalc[Angle Computation]
-  FSM[FSM + Graph Engine]
-  State[Exercise State]
-
-  RawPose --> NormalizedPose
-  NormalizedPose --> AngleCalc
-  AngleCalc --> FSM
-  FSM --> State
+  RawPose[Pose keypoints] --> Signals[Signal extraction]
+  Signals --> EventGraph[FSM/Event graph]
+  Signals --> GridValidation[Grid validation]
+  EventGraph --> Snapshot
+  GridValidation --> Snapshot
 ```
 
-Key characteristics:
+`SessionComparator` computes:
 
-- Deterministic
-- Time-aware
-- Noise-tolerant
+- FSM/event-graph progress (`score`, `matchedCount`, `completion`, `completed`)
+- Grid progress (`gridScore`, `gridProgress`, matched keypoints)
+- Active signals for diagnostics and overlays
 
----
+Validation behavior in Trainer is config-driven:
 
-## 5. Exercise Model
-
-Exercises are defined as **versioned JSON graphs**.
-
-```mermaid
-graph TD
-  Step1[Angle Step A]
-  Step2[Angle Step B]
-  Step3[Angle Step C]
-
-  Step1 --> Step2
-  Step1 --> Step3
-  Step2 --> Step3
-```
-
-Each exercise defines:
-
-- Moving points / angles
-- Expected min/max sequences
-- Parallel paths
-- Temporal constraints
-
-JSON is the **source of truth**.
+- `evaluation.type = fsm`: score from FSM/event-graph metrics
+- `evaluation.type = grid`: score from grid metrics
 
 ---
 
-## 6. Validation Engine (FSM + Graphs)
+## 5. Routine Execution Flow
 
-Each exercise run is evaluated by a **Finite State Machine** enhanced with **directed graphs**.
+Trainer loop behavior:
 
-```mermaid
-graph LR
-  Idle --> InProgress
-  InProgress --> Failed
-  InProgress --> Completed
-  Failed --> Idle
-```
+1. Load current routine item exercise
+2. Process live pose snapshots continuously
+3. Compute score percent according to configured evaluation type
+4. Mark a rep complete when score reaches threshold 80
+5. Move to next exercise when target reps are completed
+6. Show routine complete message when last exercise finishes
 
-FSM state is enriched with:
-
-- Current graph nodes
-- Time windows
-- Partial completion
+This logic is deterministic and state-driven.
 
 ---
 
-## 7. Rendering Architecture
+## 6. Configuration Architecture
 
-Rendering uses **Canvas 2D** with layered drawing passes.
+Configuration is seeded from `src/config/defaultAppConfig.json` and persisted in localStorage.
 
-```mermaid
-graph TD
-  Ghost[Ghost Pose]
-  User[User Pose]
-  Feedback[Feedback Overlay]
+Current config domains:
 
-  Ghost --> Canvas
-  User --> Canvas
-  Feedback --> Canvas
-```
+- `models`:
+  - `poseModel`: `movenet` | `blazepose`
+  - model variants for MoveNet, BlazePose, HandPose
+- `camera`:
+  - `flow`: `web`
+- `runtime`:
+  - `execution`: `workers` | `site`
+- `evaluation`:
+  - `type`: `fsm` | `grid`
 
-Rendering uses **draw instructions**, not raw logic.
-
----
-
-## 8. Control & Interaction
-
-The mirror has **no touchscreen**.
-
-Control is provided via:
-
-- QR code
-- Local web UI (mobile)
-- Optional gestures or hardware buttons
-
-```mermaid
-graph TD
-  Mobile[Mobile Browser]
-  API[Local API]
-  FSMEngine[FSM Engine]
-
-  Mobile -->|Commands| API
-  API --> FSMEngine
-```
+Config updates are propagated through a custom window event so active views can react without reload.
 
 ---
 
-## 9. Data & Storage
+## 7. Data and Storage
 
-All data is stored locally.
-
-```mermaid
-graph TD
-  JSON[Exercise JSON]
-  Migration[Migration Layer]
-  DB[(Local DB)]
-
-  JSON --> Migration
-  Migration --> DB
-```
-
-Stored data includes:
-
-- Exercises
-- Tutor exercises
-- Execution runs
-- Metrics
-
-The database is **never exposed directly**.
+- Exercises and routines are stored locally
+- JSON definitions are canonical and can be migrated into DB records
+- No client direct DB access from remote devices
+- No database files in `/public`
 
 ---
 
-## 10. Design Principles Summary
+## 8. Offline Model Assets
 
-- JSON as contracts
-- FSMs over heuristics
-- Graphs for parallelism
-- Workers for performance
-- Canvas for efficiency
-- Local-first always
+Model assets are served locally from `public/models`.
 
----
+Highlights:
 
-## 11. Future Extensions
+- MoveNet: local TFJS model URLs
+- BlazePose: local MediaPipe assets under `public/models/blazepose/mediapipe`
+- HandPose: local detector/landmark model paths
 
-- Optional DTW-based scoring
-- Tutor recording mode
-- Exercise editor UI
-- Multi-camera support
+This allows startup and validation without network access.
 
 ---
 
-🪞 _This architecture is designed to evolve without breaking core assumptions._
+## 9. Design Principles
+
+- Local-first and offline-first by default
+- Explicit state machines over implicit heuristics
+- JSON contracts over hardcoded logic
+- Small composable modules
+- Performance-aware runtime placement (worker vs main thread)
+
+---
+
+## 10. Known Extension Points
+
+- Additional scoring modes
+- More runtime partitioning into workers
+- Advanced routine feedback and post-session analytics
+- Exercise authoring UX improvements
+
+---
+
+This architecture is intended to evolve incrementally while preserving deterministic behavior and offline operation.
