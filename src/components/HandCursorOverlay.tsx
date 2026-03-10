@@ -11,6 +11,7 @@ const EMPTY_CURSOR: HandCursorState = {
   y: 0,
   lastEvent: null,
   eventSequence: 0,
+  gestureProgress: 0,
 };
 
 export default function HandCursorOverlay() {
@@ -56,10 +57,12 @@ export default function HandCursorOverlay() {
         .join(" ")}
       style={{
         transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)`,
-      }}
+        "--gesture-progress": cursor.gestureProgress,
+      } as React.CSSProperties}
       aria-hidden="true"
     >
       <div className="hand-cursor-overlay__ring" />
+      <div className="hand-cursor-overlay__progress-ring" />
       <div className="hand-cursor-overlay__dot" />
     </div>
   );

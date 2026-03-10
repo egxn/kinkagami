@@ -39,6 +39,19 @@
   background: var(--kgm-button-hover-border);
 }
 
+// Outer ring that shrinks toward the inner dot as the fist closes.
+// Always visible when cursor is shown (opacity driven by parent visibility).
+// scale: 1.9 (open, wide outer ring) → 0.3 (fist, at dot size)
+.hand-cursor-overlay__progress-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid var(--kgm-button-hover-border);
+  opacity: 0.5;
+  transform: scale(calc(1.9 - var(--gesture-progress, 0) * 1.6));
+  transition: transform 80ms linear;
+}
+
 .hand-cursor-overlay--confirm .hand-cursor-overlay__ring {
   animation: hand-cursor-confirm 320ms ease-out;
 }

@@ -30,12 +30,29 @@ const makeElementRect = (left: number, right: number) => {
   return el;
 };
 
+// Fingertips bunched near wrist: normAvgToWrist ≈ 0.77 < FIST_NORM_THRESHOLD(0.95)
 const makeFistAt = (x: number, y: number): HandKeypoint[] => {
-  const points: HandKeypoint[] = [];
-  for (let i = 0; i < 21; i++) {
-    points.push({ x: x + (i % 2 === 0 ? 0 : 1), y: y + (i % 2 === 0 ? 0 : 1) });
-  }
-  return points;
+  const pts: HandKeypoint[] = Array.from({ length: 21 }, () => ({ x, y }));
+  pts[9]  = { x: x,      y: y - 50 }; // middle MCP → hand size = 50px
+  pts[4]  = { x: x - 10, y: y - 38 }; // thumb tip
+  pts[8]  = { x: x -  5, y: y - 40 }; // index tip
+  pts[12] = { x: x,      y: y - 42 }; // middle tip
+  pts[16] = { x: x +  5, y: y - 38 }; // ring tip
+  pts[20] = { x: x + 10, y: y - 32 }; // pinky tip
+  return pts;
+};
+
+// Fingertips spread far from wrist: normAvgToWrist ≈ 1.59 > OPEN_NORM_THRESHOLD(1.40)
+// Tips use large y-offsets so they land outside any button's viewport bounds (py<0).
+const makeOpenHandAt = (x: number, y: number): HandKeypoint[] => {
+  const pts: HandKeypoint[] = Array.from({ length: 21 }, () => ({ x, y }));
+  pts[9]  = { x: x,      y: y - 50 }; // middle MCP → hand size = 50px
+  pts[4]  = { x: x - 30, y: y - 60 }; // thumb tip  (dist ≈ 67.1)
+  pts[8]  = { x: x - 15, y: y - 85 }; // index tip  (dist ≈ 86.3)
+  pts[12] = { x: x,      y: y - 90 }; // middle tip (dist = 90)
+  pts[16] = { x: x + 15, y: y - 85 }; // ring tip   (dist ≈ 86.3)
+  pts[20] = { x: x + 30, y: y - 60 }; // pinky tip  (dist ≈ 67.1)
+  return pts;
 };
 
 afterEach(() => {
@@ -93,10 +110,12 @@ describe("handDetectionLoop", () => {
     const detector = {
       estimateHands: vi.fn(async () => {
         call += 1;
-        if (call < 3) {
-          return [{ keypoints: makeFistAt(90, 50) }];
-        }
-        return [{ keypoints: makeFistAt(10, 50) }];
+        if (call === 1) return [{ keypoints: makeOpenHandAt(90, 50) }]; // open  → phase: open
+        if (call === 2) return [{ keypoints: makeFistAt(90, 50) }];     // fist  → phase: fist
+        if (call === 3) return [{ keypoints: makeOpenHandAt(90, 50) }]; // open  → fires on btn 1
+        if (call === 4) return [{ keypoints: makeOpenHandAt(10, 50) }]; // open  → phase stays open
+        if (call === 5) return [{ keypoints: makeFistAt(10, 50) }];     // fist  → phase: fist
+        return [{ keypoints: makeOpenHandAt(10, 50) }];                 // open  → fires on btn 2
       }),
     };
 
@@ -124,7 +143,7 @@ describe("handDetectionLoop", () => {
       onDiscard: () => {},
     });
 
-    await wait(180);
+    await wait(300);
 
     expect(focus1).toHaveBeenCalledWith(true);
     expect(focus1).toHaveBeenCalledWith(false);

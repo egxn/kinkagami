@@ -31,6 +31,8 @@ export interface HandCursorState {
   y: number;
   lastEvent: "confirm" | "discard" | null;
   eventSequence: number;
+  /** 0 = fully open hand, 1 = fully closed fist */
+  gestureProgress: number;
 }
 
 export interface ButtonRegistration {
@@ -68,6 +70,11 @@ let focusedButtonId: number | null = null;
 let hoveredDefaultButtonId: number | null = null;
 let previousCenterX: number | null = null;
 let previousCenterY: number | null = null;
+// Three-phase click: open → fist → open fires the action.
+// fistButtonId tracks WHICH button the fist started over,
+// so gestures formed outside any button are ignored.
+let gesturePhase: "idle" | "open" | "fist" = "idle";
+let fistButtonId: number | null = null;
 
 // ---- Per-button state ----
 
@@ -84,6 +91,7 @@ let cursorState: HandCursorState = {
   y: 0,
   lastEvent: null,
   eventSequence: 0,
+  gestureProgress: 0,
 };
 const cursorSubscribers = new Set<(state: HandCursorState) => void>();
 let lastCursorSeenAt = 0;
@@ -128,27 +136,42 @@ const dist = (a: HandKeypoint, b: HandKeypoint) => {
   return Math.sqrt(dx * dx + dy * dy);
 };
 
-const isFist = (estimations: HandPrediction[]): boolean => {
-  const kps = estimations[0]?.keypoints;
-  if (!kps || kps.length < 21) return false;
+// Scale-invariant gesture detection.
+// Normalize tip-to-wrist distance by wrist→middleMCP length so thresholds
+// are consistent regardless of how far the hand is from the camera.
+const MIDDLE_MCP_INDEX = 9; // middle finger base knuckle
+const FIST_NORM_THRESHOLD = 0.95; // normAvgToWrist below this → fist
+const OPEN_NORM_THRESHOLD = 1.40; // normAvgToWrist above this → open
 
+const computeNormAvgToWrist = (kps: HandKeypoint[]): number | null => {
+  if (kps.length < 21) return null;
   const wrist = kps[WRIST_INDEX];
+  const mcp   = kps[MIDDLE_MCP_INDEX];
+  if (!wrist || !mcp) return null;
+  const handSize = dist(wrist, mcp);
+  if (handSize < 5) return null; // too small / noisy
   const tips = FINGERTIP_INDEXES.map((i) => kps[i]).filter(Boolean);
-  if (!wrist || tips.length !== FINGERTIP_INDEXES.length) return false;
+  if (tips.length !== FINGERTIP_INDEXES.length) return null;
+  const avgToWrist = tips.reduce((s, t) => s + dist(t, wrist), 0) / tips.length;
+  return avgToWrist / handSize;
+};
 
-  const avgToWrist =
-    tips.reduce((sum, t) => sum + dist(t, wrist), 0) / tips.length;
+const isFist = (kps: HandKeypoint[]): boolean => {
+  const n = computeNormAvgToWrist(kps);
+  return n !== null && n < FIST_NORM_THRESHOLD;
+};
 
-  let pairs = 0;
-  let pairDist = 0;
-  for (let i = 0; i < tips.length; i++) {
-    for (let j = i + 1; j < tips.length; j++) {
-      pairDist += dist(tips[i], tips[j]);
-      pairs++;
-    }
-  }
+const isOpenHand = (kps: HandKeypoint[]): boolean => {
+  const n = computeNormAvgToWrist(kps);
+  return n !== null && n > OPEN_NORM_THRESHOLD;
+};
 
-  return avgToWrist < 90 && (pairs > 0 ? pairDist / pairs : Infinity) < 55;
+/** Returns 0 (open) → 1 (fully closed fist). Used for cursor ring feedback. */
+const computeGestureProgress = (kps: HandKeypoint[]): number => {
+  const n = computeNormAvgToWrist(kps);
+  if (n === null) return 0;
+  const clamped = Math.max(FIST_NORM_THRESHOLD, Math.min(OPEN_NORM_THRESHOLD, n));
+  return 1 - (clamped - FIST_NORM_THRESHOLD) / (OPEN_NORM_THRESHOLD - FIST_NORM_THRESHOLD);
 };
 
 const swipeH = (
@@ -271,6 +294,7 @@ async function detect() {
     if (!loopRunning) return;
 
     const handKps = estimations[0]?.keypoints ?? [];
+    const gestureProgress = computeGestureProgress(handKps);
 
     if (handKps.length > 0) {
       const center = handKps.reduce(
@@ -288,17 +312,32 @@ async function detect() {
         visible: true,
         x: center.x / handKps.length,
         y: center.y / handKps.length,
+        gestureProgress,
       });
       lastCursorSeenAt = Date.now();
     } else if (
       cursorState.visible &&
       Date.now() - lastCursorSeenAt > CURSOR_VISIBILITY_GRACE_MS
     ) {
-      emitCursorState({ visible: false });
+      emitCursorState({ visible: false, gestureProgress: 0 });
     }
 
     const now = Date.now();
-    const fist = isFist(estimations);
+    const fist = isFist(handKps);
+    const handOpen = isOpenHand(handKps);
+
+    // idle → open: any time hand is open (regardless of position)
+    // open → fist: only when fist forms WHILE over a button (handled in loop below)
+    // fist → open (fires): only over the same button (handled in loop below)
+    if (handKps.length === 0) {
+      gesturePhase = "idle";
+      fistButtonId = null;
+    } else if (gesturePhase === "idle" && handOpen) {
+      gesturePhase = "open";
+    } else if (gesturePhase === "fist" && handOpen && fistButtonId === null) {
+      // Fist released outside all buttons — reset cleanly.
+      gesturePhase = "open";
+    }
 
     const { dir: hDir, cx } = swipeH(estimations, previousCenterX);
     previousCenterX = cx;
@@ -347,9 +386,17 @@ async function detect() {
         reg.onHoverChange(curTarget);
       }
 
-      // ---- Action (fist on button) ----
-      if (over && fist) {
-        logger.log("Button", `Hand action confirmed (fist) on button ${id}`);
+      // ---- Transition open → fist (only when hand is OVER this button) ----
+      if (over && fist && gesturePhase === "open") {
+        gesturePhase = "fist";
+        fistButtonId = id;
+      }
+
+      // ---- Action: re-open while over the SAME button the fist started on ----
+      if (over && handOpen && gesturePhase === "fist" && fistButtonId === id) {
+        gesturePhase = "open"; // allow chaining immediately
+        fistButtonId = null;
+        logger.log("Button", `Hand action confirmed (open→fist→open) on button ${id}`);
         const wasFocused = focusedButtonId;
         const wasAlreadyFocused = focusedButtonId === id;
         focusedButtonId = id;
@@ -368,6 +415,7 @@ async function detect() {
           emitCursorState({
             lastEvent: "confirm",
             eventSequence: cursorState.eventSequence + 1,
+            gestureProgress: 0,
           });
         }
         previousCenterX = null;

@@ -180,7 +180,7 @@ async function ensureSeedExercisesIfEmpty(): Promise<void> {
 
     const modulePaths = Object.keys(exerciseJsonModules).sort();
     if (modulePaths.length === 0) {
-      console.warn("No exercise JSON files found for initial seed.");
+      // No bundled JSON seeds – DB starts empty, exercises can be added via scripts/db-seeds-load.mjs
       return;
     }
 
