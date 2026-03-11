@@ -1,4 +1,5 @@
 export type MoveNetModelVersion = "thunder" | "lightning";
+export type TFBackendType = "webgl" | "wasm";
 
 export interface WorkerPoseKeypoint {
   x: number;
@@ -16,6 +17,7 @@ export type MoveNetWorkerRequest =
   | {
       type: "init";
       version: MoveNetModelVersion;
+      backend: TFBackendType;
     }
   | {
       type: "estimate";

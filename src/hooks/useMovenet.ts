@@ -130,14 +130,16 @@ const createWorkerBackedDetector = (
 
 const initializeMainThreadDetector = async (
   movenetVersion: "thunder" | "lightning",
+  backend: "webgl" | "wasm",
 ) => {
   try {
-    await tf.setBackend("webgl");
+    await tf.setBackend(backend);
     await tf.ready();
     logger.log("useMovenet", tf.getBackend() + " backend is ready");
   } catch {
-    logger.log("useMovenet", "WebGL failed, falling back to WASM");
-    await tf.setBackend("wasm");
+    const fallback = backend === "webgl" ? "wasm" : "webgl";
+    logger.log("useMovenet", `${backend} failed, falling back to ${fallback}`);
+    await tf.setBackend(fallback);
     await tf.ready();
     logger.log(
       "useMovenet",
@@ -185,6 +187,7 @@ export const useMovenet = (): UseMovenetReturn => {
         let detector: poseDetection.PoseDetector | null = null;
         const appConfig = getAppConfig();
         const workersEnabled = appConfig.runtime.execution === "workers";
+        const preferredBackend = appConfig.runtime.backend ?? "webgl";
 
         const workerCapable =
           workersEnabled &&
@@ -222,6 +225,7 @@ export const useMovenet = (): UseMovenetReturn => {
               worker.postMessage({
                 type: "init",
                 version: movenetVersion,
+                backend: preferredBackend,
               } satisfies MoveNetWorkerRequest);
             });
 
@@ -234,10 +238,10 @@ export const useMovenet = (): UseMovenetReturn => {
               "MoveNet worker unavailable, falling back to main thread",
               workerError,
             );
-            detector = await initializeMainThreadDetector(movenetVersion);
+            detector = await initializeMainThreadDetector(movenetVersion, preferredBackend);
           }
         } else {
-          detector = await initializeMainThreadDetector(movenetVersion);
+          detector = await initializeMainThreadDetector(movenetVersion, preferredBackend);
         }
 
         if (!mounted) {

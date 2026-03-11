@@ -11,7 +11,8 @@
     "streamUrl": "http://localhost:8090/?action=stream"
   },
   "runtime": {
-    "execution": "workers"
+    "execution": "workers",
+    "backend": "webgl"
   },
   "evaluation": {
     "type": "fsm"

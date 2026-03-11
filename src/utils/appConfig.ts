@@ -10,6 +10,7 @@ export type PoseModelType = "movenet" | "blazepose";
 export type CameraFlowType = "web" | "streamUrl";
 export type RuntimeExecutionType = "workers" | "site";
 export type EvaluationType = "fsm" | "grid";
+export type TFBackendType = "webgl" | "wasm";
 
 export interface AppConfig {
   models: {
@@ -25,6 +26,7 @@ export interface AppConfig {
   };
   runtime: {
     execution: RuntimeExecutionType;
+    backend: TFBackendType;
   };
   evaluation: {
     type: EvaluationType;
@@ -56,6 +58,9 @@ const normalizeStreamUrl = (value: unknown): string => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : DEFAULT_APP_CONFIG.camera.streamUrl;
 };
+
+const isTFBackendType = (value: unknown): value is TFBackendType =>
+  value === "webgl" || value === "wasm";
 
 const isRuntimeExecutionType = (
   value: unknown,
@@ -117,6 +122,9 @@ export const sanitizeAppConfig = (value: unknown): AppConfig => {
       execution: isRuntimeExecutionType(sourceRuntime.execution)
         ? sourceRuntime.execution
         : DEFAULT_APP_CONFIG.runtime.execution,
+      backend: isTFBackendType((sourceRuntime as Partial<AppConfig["runtime"]>).backend)
+        ? (sourceRuntime as Partial<AppConfig["runtime"]>).backend!
+        : DEFAULT_APP_CONFIG.runtime.backend,
     },
     evaluation: {
       type: isEvaluationType(sourceEvaluation.type)

@@ -33,17 +33,18 @@ const toWorkerPoses = (poses: poseDetection.Pose[]): WorkerPose[] => {
   }));
 };
 
-const initializeDetector = async (version: "thunder" | "lightning") => {
+const initializeDetector = async (version: "thunder" | "lightning", backend: "webgl" | "wasm") => {
   if (detector) {
     detector.dispose();
     detector = null;
   }
 
   try {
-    await tf.setBackend("webgl");
+    await tf.setBackend(backend);
     await tf.ready();
   } catch {
-    await tf.setBackend("wasm");
+    const fallback = backend === "webgl" ? "wasm" : "webgl";
+    await tf.setBackend(fallback);
     await tf.ready();
   }
 
@@ -75,7 +76,7 @@ workerScope.onmessage = async (event: MessageEvent<MoveNetWorkerRequest>) => {
 
   if (message.type === "init") {
     try {
-      await initializeDetector(message.version);
+      await initializeDetector(message.version, message.backend);
       workerScope.postMessage({ type: "ready" });
     } catch (error) {
       postError(error);

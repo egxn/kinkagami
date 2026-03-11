@@ -7,6 +7,7 @@ import {
   type EvaluationType,
   type PoseModelType,
   type RuntimeExecutionType,
+  type TFBackendType,
 } from "../../utils/appConfig";
 import type {
   BlazePoseVersion,
@@ -60,7 +61,11 @@ export default function Config() {
   };
 
   const setRuntimeExecution = (execution: RuntimeExecutionType) => {
-    patchConfig({ runtime: { execution } });
+    patchConfig({ runtime: { ...config.runtime, execution } });
+  };
+
+  const setTFBackend = (backend: TFBackendType) => {
+    patchConfig({ runtime: { ...config.runtime, backend } });
   };
 
   const setEvaluationType = (type: EvaluationType) => {
@@ -216,6 +221,21 @@ export default function Config() {
           >
             <option value="workers">workers</option>
             <option value="site">site</option>
+          </select>
+        </div>
+
+        <div style={rowStyle}>
+          <label htmlFor="cfg-tf-backend">Backend TensorFlow</label>
+          <select
+            id="cfg-tf-backend"
+            value={config.runtime.backend ?? "webgl"}
+            onChange={(event) =>
+              setTFBackend(event.target.value as TFBackendType)
+            }
+            style={selectStyle}
+          >
+            <option value="webgl">webgl (GPU)</option>
+            <option value="wasm">wasm (CPU)</option>
           </select>
         </div>
 

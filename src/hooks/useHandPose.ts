@@ -5,12 +5,13 @@ import "@tensorflow/tfjs-backend-webgl";
 import "@tensorflow/tfjs-backend-wasm";
 
 import { useModelVersions } from "./useModelVersions";
-import { logger } from "../utils/logger";
 import {
   getHandPoseDetectorUrl,
   getHandPoseLandmarkUrl,
   type HandPoseVersion,
 } from "../utils/modelVersions";
+import { getAppConfig } from "../utils/appConfig";
+import { logger } from "../utils/logger";
 
 export interface HandPoseDetector {
   estimateHands: (
@@ -66,14 +67,16 @@ const initializeSharedDetector = async (
       logger.log("useHandPose", sharedStatus);
 
       const currentBackend = tf.getBackend();
-      if (!currentBackend || currentBackend === "cpu") {
+      const preferredBackend = getAppConfig().runtime.backend ?? "webgl";
+      if (!currentBackend || currentBackend === "cpu" || currentBackend !== preferredBackend) {
         try {
-          await tf.setBackend("webgl");
+          await tf.setBackend(preferredBackend);
           await tf.ready();
           logger.log("useHandPose", `${tf.getBackend()} backend is ready`);
         } catch {
-          logger.log("useHandPose", "WebGL failed, falling back to WASM");
-          await tf.setBackend("wasm");
+          const fallback = preferredBackend === "webgl" ? "wasm" : "webgl";
+          logger.log("useHandPose", `${preferredBackend} failed, falling back to ${fallback}`);
+          await tf.setBackend(fallback);
           await tf.ready();
           logger.log(
             "useHandPose",
@@ -87,7 +90,6 @@ const initializeSharedDetector = async (
           `${currentBackend} backend already configured`,
         );
       }
-
       sharedStatus = `Loading HandPose model (${handposeVersion})...`;
       logger.log("useHandPose", sharedStatus);
 
