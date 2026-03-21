@@ -1,0 +1,22 @@
+{
+  "models": {
+    "poseModel": "movenet",
+    "movenet": "thunder",
+    "blazepose": "lite",
+    "handpose": "lite"
+  },
+  "camera": {
+    "flow": "web",
+    "source": "web",
+    "streamUrl": ""
+  },
+  "runtime": {
+    "execution": "site",
+    "backend": "webgl",
+    "pythonWebSocketUrl": "ws://127.0.0.1:8765",
+    "pythonStreamUrl": "http://localhost:8090/stream"
+  },
+  "evaluation": {
+    "type": "fsm"
+  }
+}

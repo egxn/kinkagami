@@ -1,8 +1,9 @@
 export { useCamera } from "./useCamera";
-export { useMovenet } from "./useMovenet";
-export { useBlazePose } from "./useBlazePose";
+export { useCameraSource } from "./useCameraSource";
+export { useMovenet, useBlazePose } from "../inference";
 export { useHandPose } from "./useHandPose";
 export { usePoseDetection } from "./usePoseDetection";
+export { usePoseModel } from "./usePoseModel";
 export { useExercises } from "./useExercises";
 export { useRoutines } from "./useRoutines";
 export { useAvailableVideos } from "./useAvailableVideos";

@@ -10,10 +10,11 @@ import { calculateAllBodyAngles } from "../../utils/poseUtils";
 import { buildGridValidationDefinition } from "../../utils/gridValidation";
 import { addExercise } from "../../db/dbService";
 import { generateEventGraph } from "../../services/exerciseGenerator";
-import { useBlazePose } from "../../hooks/useBlazePose";
+import { useBlazePose } from "../../inference";
 import { useTranslation } from "react-i18next";
 import VideoRangeSlider from "../../components/VideoRangeSlider";
 import VideoSelector from "../../components/VideoSelector";
+import type { PoseEstimator } from "../../types/inference";
 import "./Create.scss";
 
 // Define structure for the captured data
@@ -370,7 +371,7 @@ export default function Create() {
   };
 
   const processRangeWithDetector = async (
-    activeDetector: poseDetection.PoseDetector,
+    activeDetector: PoseEstimator,
     modelName: "MoveNet" | "BlazePose",
   ): Promise<CapturedFrame[]> => {
     const video = videoRef.current;

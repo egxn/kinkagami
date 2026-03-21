@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { HandPoseDetector } from "../hooks/useHandPose";
+import type { HandPoseDetector } from "../inference";
 
 export interface HandPoseContextType {
   videoRef: React.RefObject<HTMLVideoElement>;

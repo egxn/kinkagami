@@ -4,18 +4,30 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "setup": "pnpm install && cd backend && poetry install && cd .. && pnpm db:migrate",
+    "configure": "bash ./setup/configure.sh",
+
     "dev": "vite",
-    "dev:videos": "concurrently \"npm run server_videos\" \"npm run dev\"",
+    "dev:frontend": "bash ./setup/run-runtime.sh frontend",
+    "dev:python": "bash ./setup/run-runtime.sh python",
+    "dev:videos": "concurrently \"pnpm server:videos\" \"pnpm dev\"",
+    "dev:stream": "concurrently \"bash ./setup/run-stream.sh\" \"pnpm dev\"",
+
     "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "start": "pnpm build && pnpm preview",
+    "start:python": "cd backend && poetry run kgm-camera-backend & bash ./setup/wait-for-port.sh ${KGM_PYTHON_WS_HOST:-127.0.0.1} ${KGM_PYTHON_WS_PORT:-8765} && pnpm preview",
+
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write .",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server_videos": "node server_videos.js",
+    "format": "prettier --write .",
+
+    "server:videos": "node server_videos.js",
+    "db:migrate": "node scripts/db-seeds-load.mjs",
     "db:seeds:generate": "node scripts/db-seeds-generate.mjs",
-    "db:seeds:load": "node scripts/db-seeds-load.mjs",
-    "kiosk": "chromium --kiosk --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=TranslateUI --start-fullscreen http://localhost:5173 --auto-open-devtools-for-tabs"
+
+    "kiosk": "chromium --kiosk --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-features=TranslateUI --start-fullscreen http://localhost:4173 --auto-open-devtools-for-tabs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

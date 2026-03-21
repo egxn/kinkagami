@@ -47,7 +47,7 @@ vi.mock("../utils/modelVersions", () => ({
   getMoveNetModelUrl: (version: string) => `mock-url-${version}`,
 }));
 
-import { useMovenet } from "../hooks/useMovenet";
+import { useMovenet } from "../inference";
 
 interface MovenetState {
   detector: unknown;

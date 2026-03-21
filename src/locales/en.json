@@ -74,7 +74,8 @@
     "model_error": "Model error"
   },
   "splash": {
-    "start": "Start"
+    "start": "Start",
+    "waiting_camera": "Connecting to camera stream..."
   },
   "models": {
     "model": "Model",

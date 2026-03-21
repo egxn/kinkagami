@@ -1,0 +1,69 @@
+.dev-snackbar {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 10px;
+  background: rgba(8, 10, 20, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  color: rgba(190, 215, 255, 0.8);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.dev-snackbar__sep {
+  opacity: 0.3;
+  margin: 0 1px;
+}
+
+.dev-snackbar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dev-snackbar__label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.45;
+}
+
+.dev-snackbar__value {
+  color: rgba(210, 235, 255, 0.92);
+  font-weight: 700;
+}
+
+.dev-snackbar__fps--ok {
+  color: rgba(74, 255, 168, 0.95);
+}
+
+.dev-snackbar__fps--warn {
+  color: rgba(255, 210, 60, 0.95);
+}
+
+.dev-snackbar__fps--bad {
+  color: rgba(255, 80, 80, 0.95);
+}
+
+.dev-snackbar__close {
+  background: none;
+  border: none;
+  color: rgba(190, 215, 255, 0.35);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px 0 6px;
+  margin-left: 2px;
+
+  &:hover {
+    color: rgba(255, 100, 100, 0.8);
+  }
+}

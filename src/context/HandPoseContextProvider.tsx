@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import React from "react";
-import { useCamera, useHandPose } from "../hooks";
+import { useCamera, useCameraSource, useHandPose } from "../hooks";
 import HandPoseContext from "./HandPoseContext";
 
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ export const HandPoseProvider = ({
 }: HandPoseProviderProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
+  const cameraSource = useCameraSource();
 
   const {
     stream,
@@ -24,7 +25,7 @@ export const HandPoseProvider = ({
     isReady: cameraReady,
     onStreamReady,
     streamReady,
-  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
+  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>, cameraSource);
   const {
     detector,
     isLoading: modelLoading,

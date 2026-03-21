@@ -1,13 +1,14 @@
 import { useRef, useEffect, useCallback } from "react";
-import * as poseDetection from "@tensorflow-models/pose-detection";
+import type { Pose } from "@tensorflow-models/pose-detection";
 import { logger } from "../utils/logger";
+import type { PoseEstimator } from "../types/inference";
 
 interface UsePoseDetectionProps {
-  detector: poseDetection.PoseDetector | null;
+  detector: PoseEstimator | null;
   videoRef: React.RefObject<HTMLVideoElement>;
   modelLoading: boolean;
   streamReady: boolean;
-  onPosesDetected: (poses: poseDetection.Pose[]) => void;
+  onPosesDetected: (poses: Pose[]) => void;
   debugTag?: string;
   debugVerbose?: boolean;
 }

@@ -7,23 +7,13 @@
  * button.  On a Radxa-class SBC the savings are significant.
  */
 import { logger } from "../utils/logger";
+import type {
+  HandEstimator as HandDetector,
+  HandKeypoint,
+  HandPrediction,
+} from "../types/inference";
 
 // ---- Types ----
-
-interface HandKeypoint {
-  x: number;
-  y: number;
-}
-
-interface HandPrediction {
-  keypoints?: HandKeypoint[];
-}
-
-interface HandDetector {
-  estimateHands: (
-    input: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement,
-  ) => Promise<unknown[]>;
-}
 
 export interface HandCursorState {
   visible: boolean;

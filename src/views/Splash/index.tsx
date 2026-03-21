@@ -4,16 +4,20 @@ import { useTranslation } from "react-i18next";
 import Button from "../../components/Button";
 import { logger } from "../../utils/logger";
 import usePoseContext from "../../context/usePoseContext";
+import { useCameraSource } from "../../hooks";
 
 function Splash() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { cameraError, cameraReady, streamReady, videoRef } = usePoseContext();
+  const cameraSource = useCameraSource();
+  const isStream = cameraSource.flow === "streamUrl";
+  const waiting = isStream && !cameraReady;
 
   useEffect(() => {
     logger.log(
       "Splash",
-      `Camera - Ready: ${cameraReady}, Error: ${cameraError}`,
+      `Camera - Ready: ${cameraReady}, Error: ${cameraError}, Stream: ${isStream}`,
     );
 
     if (cameraError) {
@@ -21,7 +25,7 @@ function Splash() {
       navigate("/error");
       return;
     }
-  }, [cameraReady, cameraError, navigate]);
+  }, [cameraReady, cameraError, navigate, isStream]);
 
   const handleAction = () => {
     logger.log("Splash", "Start action confirmed");
@@ -31,6 +35,20 @@ function Splash() {
   const handleDiscard = () => {
     logger.log("Splash", "Start action discarded");
   };
+
+  if (waiting) {
+    return (
+      <div className="splash-screen">
+        <h1> 🦝 🪞 </h1>
+        <div className="splash-loading">
+          <div className="splash-loading__spinner" />
+          <p className="splash-loading__text">
+            {t("splash.waiting_camera")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="splash-screen">

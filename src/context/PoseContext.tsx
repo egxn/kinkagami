@@ -1,10 +1,10 @@
 import { createContext } from "react";
-import * as poseDetection from "@tensorflow-models/pose-detection";
+import type { PoseEstimator } from "../types/inference";
 
 export interface PoseContextType {
   videoRef: React.RefObject<HTMLVideoElement>;
   stream: MediaStream | null;
-  detector: poseDetection.PoseDetector | null;
+  detector: PoseEstimator | null;
   cameraError: string | null;
   cameraReady: boolean;
   modelLoading: boolean;

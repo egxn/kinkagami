@@ -5,13 +5,13 @@ import { useTranslation } from "react-i18next";
 import Skeleton from "../../components/Skeleton";
 import usePoseContext from "../../context/usePoseContext";
 import {
-  useBlazePose,
   useAppConfig,
   useHandPose,
   useModelVersions,
   usePoseDetection,
 } from "../../hooks";
 import { logger } from "../../utils/logger";
+import type { HandPrediction, PoseEstimator } from "../../types/inference";
 import type {
   BlazePoseVersion,
   HandPoseVersion,
@@ -29,7 +29,7 @@ function PoseModelCanvas({
   debugTag,
   debugVerbose = false,
 }: {
-  detector: poseDetection.PoseDetector | null;
+  detector: PoseEstimator | null;
   modelLoading: boolean;
   modelError: string | null;
   streamReady: boolean;
@@ -71,16 +71,6 @@ function PoseModelCanvas({
       </p>
     </>
   );
-}
-
-interface HandKeypoint {
-  x: number;
-  y: number;
-  name?: string;
-}
-
-interface HandPrediction {
-  keypoints?: HandKeypoint[];
 }
 
 function HandModelCanvas({
@@ -207,40 +197,14 @@ function HandModelCanvas({
   );
 }
 
-function BlazePoseModelCanvas({
-  streamReady,
-  videoRef,
-}: {
-  streamReady: boolean;
-  videoRef: React.RefObject<HTMLVideoElement>;
-}) {
-  const {
-    detector,
-    isLoading: modelLoading,
-    error: modelError,
-  } = useBlazePose();
-
-  return (
-    <PoseModelCanvas
-      detector={detector}
-      modelLoading={modelLoading}
-      modelError={modelError}
-      streamReady={streamReady}
-      videoRef={videoRef}
-      debugTag="BlazePose/Models"
-      debugVerbose
-    />
-  );
-}
-
 export default function Models() {
   const { t } = useTranslation();
   const {
     cameraError,
     cameraReady,
-    detector: movenetDetector,
-    modelError: movenetModelError,
-    modelLoading: movenetModelLoading,
+    detector: poseDetector,
+    modelError: poseModelError,
+    modelLoading: poseModelLoading,
     stream,
     streamReady,
     videoRef,
@@ -332,12 +296,12 @@ export default function Models() {
             setSelectedModel(next);
 
             if (next === "movenet" || next === "blazepose") {
-              patchConfig({
-                models: {
-                  poseModel: next,
-                },
-              });
-            }
+                patchConfig({
+                  models: {
+                    poseModel: next,
+                  } as typeof appConfig.models,
+                });
+              }
           }}
           style={{ padding: "8px 10px" }}
         >
@@ -358,7 +322,7 @@ export default function Models() {
                 patchConfig({
                   models: {
                     movenet,
-                  },
+                  } as typeof appConfig.models,
                 });
               }}
               style={{ padding: "8px 10px" }}
@@ -383,7 +347,7 @@ export default function Models() {
                 patchConfig({
                   models: {
                     blazepose,
-                  },
+                  } as typeof appConfig.models,
                 });
               }}
               style={{ padding: "8px 10px" }}
@@ -407,7 +371,7 @@ export default function Models() {
                 patchConfig({
                   models: {
                     handpose,
-                  },
+                  } as typeof appConfig.models,
                 });
               }}
               style={{ padding: "8px 10px" }}
@@ -437,9 +401,9 @@ export default function Models() {
       >
         {activeModel === "movenet" && (
           <PoseModelCanvas
-            detector={movenetDetector}
-            modelLoading={movenetModelLoading}
-            modelError={movenetModelError}
+            detector={poseDetector}
+            modelLoading={poseModelLoading}
+            modelError={poseModelError}
             streamReady={streamReady}
             videoRef={videoRef}
             debugTag="MoveNet/Models"
@@ -447,7 +411,15 @@ export default function Models() {
         )}
 
         {activeModel === "blazepose" && (
-          <BlazePoseModelCanvas streamReady={streamReady} videoRef={videoRef} />
+          <PoseModelCanvas
+            detector={poseDetector}
+            modelLoading={poseModelLoading}
+            modelError={poseModelError}
+            streamReady={streamReady}
+            videoRef={videoRef}
+            debugTag="BlazePose/Models"
+            debugVerbose
+          />
         )}
 
         {activeModel === "handpose" && (

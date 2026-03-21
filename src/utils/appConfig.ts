@@ -8,7 +8,7 @@ import {
 
 export type PoseModelType = "movenet" | "blazepose";
 export type CameraFlowType = "web" | "streamUrl";
-export type RuntimeExecutionType = "workers" | "site";
+export type RuntimeExecutionType = "workers" | "site" | "python";
 export type EvaluationType = "fsm" | "grid";
 export type TFBackendType = "webgl" | "wasm";
 
@@ -27,6 +27,8 @@ export interface AppConfig {
   runtime: {
     execution: RuntimeExecutionType;
     backend: TFBackendType;
+    pythonWebSocketUrl: string;
+    pythonStreamUrl: string;
   };
   evaluation: {
     type: EvaluationType;
@@ -64,7 +66,53 @@ const isTFBackendType = (value: unknown): value is TFBackendType =>
 
 const isRuntimeExecutionType = (
   value: unknown,
-): value is RuntimeExecutionType => value === "workers" || value === "site";
+): value is RuntimeExecutionType =>
+  value === "workers" || value === "site" || value === "python";
+
+const normalizePythonWebSocketUrl = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return DEFAULT_APP_CONFIG.runtime.pythonWebSocketUrl;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0
+    ? trimmed
+    : DEFAULT_APP_CONFIG.runtime.pythonWebSocketUrl;
+};
+
+const normalizePythonStreamUrl = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return DEFAULT_APP_CONFIG.runtime.pythonStreamUrl;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0
+    ? trimmed
+    : DEFAULT_APP_CONFIG.runtime.pythonStreamUrl;
+};
+
+const getBootstrapConfigOverrides = (): Partial<AppConfig> => {
+  if (typeof import.meta === "undefined") return {};
+
+  const runtimeExecution = import.meta.env.VITE_KGM_RUNTIME_EXECUTION;
+  const pythonWebSocketUrl = import.meta.env.VITE_KGM_PYTHON_WS_URL;
+  const pythonStreamUrl = import.meta.env.VITE_KGM_PYTHON_STREAM_URL;
+
+  const runtime: Partial<AppConfig["runtime"]> = {};
+  if (isRuntimeExecutionType(runtimeExecution)) {
+    runtime.execution = runtimeExecution;
+  }
+  if (typeof pythonWebSocketUrl === "string" && pythonWebSocketUrl.trim()) {
+    runtime.pythonWebSocketUrl = pythonWebSocketUrl.trim();
+  }
+  if (typeof pythonStreamUrl === "string" && pythonStreamUrl.trim()) {
+    runtime.pythonStreamUrl = pythonStreamUrl.trim();
+  }
+
+  return Object.keys(runtime).length > 0
+    ? ({ runtime } as Partial<AppConfig>)
+    : {};
+};
 
 const isEvaluationType = (value: unknown): value is EvaluationType =>
   value === "fsm" || value === "grid";
@@ -125,6 +173,12 @@ export const sanitizeAppConfig = (value: unknown): AppConfig => {
       backend: isTFBackendType((sourceRuntime as Partial<AppConfig["runtime"]>).backend)
         ? (sourceRuntime as Partial<AppConfig["runtime"]>).backend!
         : DEFAULT_APP_CONFIG.runtime.backend,
+      pythonWebSocketUrl: normalizePythonWebSocketUrl(
+        (sourceRuntime as Partial<AppConfig["runtime"]>).pythonWebSocketUrl,
+      ),
+      pythonStreamUrl: normalizePythonStreamUrl(
+        (sourceRuntime as Partial<AppConfig["runtime"]>).pythonStreamUrl,
+      ),
     },
     evaluation: {
       type: isEvaluationType(sourceEvaluation.type)
@@ -208,7 +262,17 @@ export const ensureAppConfigInStorage = (): AppConfig => {
 
   const raw = window.localStorage.getItem(APP_CONFIG_STORAGE_KEY);
   if (!raw) {
-    return saveAppConfig(DEFAULT_APP_CONFIG);
+    const bootstrapOverrides = getBootstrapConfigOverrides();
+    return saveAppConfig(
+      sanitizeAppConfig({
+        ...DEFAULT_APP_CONFIG,
+        ...bootstrapOverrides,
+        runtime: {
+          ...DEFAULT_APP_CONFIG.runtime,
+          ...(bootstrapOverrides.runtime ?? {}),
+        },
+      }),
+    );
   }
 
   const config = getAppConfig();

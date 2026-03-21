@@ -30,9 +30,23 @@ export const useCamera = (
 
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Keep the video element's srcObject in sync with the stream
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (stream) {
+      if (video.srcObject !== stream) {
+        video.srcObject = stream;
+        video.play().catch(() => {});
+      }
+    } else {
+      video.srcObject = null;
+    }
+  }, [stream, videoRef]);
+
   useEffect(() => {
     let mounted = true;
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let rafId: number | null = null;
     let captureCanvas: HTMLCanvasElement | null = null;
     let captureImage: HTMLImageElement | null = null;
 
@@ -42,9 +56,9 @@ export const useCamera = (
     setStream(null);
 
     const cleanupCurrent = () => {
-      if (pollTimer) {
-        clearTimeout(pollTimer);
-        pollTimer = null;
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
       }
       if (captureImage) {
         captureImage.onload = null;
@@ -63,9 +77,12 @@ export const useCamera = (
           streamUrl: cameraConfig.streamUrl,
         });
 
+        // Derive the snapshot URL from the stream URL
+        // e.g. http://host:port/stream → http://host:port/snapshot
+        const snapshotUrl = cameraConfig.streamUrl.replace(/\/stream\b/, "/snapshot");
+
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.decoding = "sync";
         captureImage = img;
 
         const canvas = document.createElement("canvas");
@@ -77,14 +94,10 @@ export const useCamera = (
 
         let streamInitialized = false;
 
-        const nextFrameUrl = () => {
-          const separator = cameraConfig.streamUrl.includes("?") ? "&" : "?";
-          return `${cameraConfig.streamUrl}${separator}kgm_ts=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        };
-
         const requestNextFrame = () => {
           if (!mounted || !captureImage) return;
-          captureImage.src = nextFrameUrl();
+          // Cache-busting query so the browser doesn't cache the snapshot
+          captureImage.src = `${snapshotUrl}?_t=${Date.now()}`;
         };
 
         img.onload = () => {
@@ -99,14 +112,8 @@ export const useCamera = (
 
           try {
             ctx.drawImage(captureImage, 0, 0, canvas.width, canvas.height);
-          } catch (drawError) {
-            const message =
-              drawError instanceof Error
-                ? drawError.message
-                : String(drawError);
-            setError(`MJPEG draw failed: ${message}`);
-            logger.error("useCamera", "MJPEG draw failed", message);
-            return;
+          } catch {
+            // image not decoded yet – skip
           }
 
           if (!streamInitialized) {
@@ -125,13 +132,14 @@ export const useCamera = (
             streamInitialized = true;
           }
 
-          pollTimer = setTimeout(requestNextFrame, 30);
+          // Poll at display refresh rate (capped ~30fps by rAF)
+          rafId = requestAnimationFrame(requestNextFrame);
         };
 
         img.onerror = () => {
           if (!mounted) return;
-          logger.warn("useCamera", "MJPEG frame load failed, retrying...");
-          pollTimer = setTimeout(requestNextFrame, 250);
+          // Backend may not have a frame yet; retry after a short delay
+          setTimeout(requestNextFrame, 500);
         };
 
         requestNextFrame();

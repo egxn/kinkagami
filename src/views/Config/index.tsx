@@ -64,8 +64,17 @@ export default function Config() {
     patchConfig({ runtime: { ...config.runtime, execution } });
   };
 
-  const setTFBackend = (backend: TFBackendType) => {
+const setTFBackend = (backend: TFBackendType) => {
     patchConfig({ runtime: { ...config.runtime, backend } });
+  };
+
+  const setPythonWebSocketUrl = (pythonWebSocketUrl: string) => {
+    patchConfig({
+      runtime: {
+        ...config.runtime,
+        pythonWebSocketUrl,
+      },
+    });
   };
 
   const setEvaluationType = (type: EvaluationType) => {
@@ -221,7 +230,21 @@ export default function Config() {
           >
             <option value="workers">workers</option>
             <option value="site">site</option>
+            <option value="python">python</option>
           </select>
+        </div>
+
+        <div style={rowStyle}>
+          <label htmlFor="cfg-python-ws-url">Python WebSocket URL</label>
+          <input
+            id="cfg-python-ws-url"
+            type="text"
+            value={config.runtime.pythonWebSocketUrl}
+            onChange={(event) => setPythonWebSocketUrl(event.target.value)}
+            placeholder="ws://127.0.0.1:8765"
+            disabled={config.runtime.execution !== "python"}
+            style={selectStyle}
+          />
         </div>
 
         <div style={rowStyle}>

@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import React from "react";
-import { useCamera, useBlazePose } from "../hooks";
+import { useCamera, useCameraSource } from "../hooks";
+import { useBlazePose } from "../inference";
 import BlazePoseContext from "./BlazePoseContext";
 
 import type { ReactNode } from "react";
@@ -17,6 +18,7 @@ export const BlazePoseProvider = ({
 }: BlazePoseProviderProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
+  const cameraSource = useCameraSource();
 
   const {
     stream,
@@ -24,7 +26,7 @@ export const BlazePoseProvider = ({
     isReady: cameraReady,
     onStreamReady,
     streamReady,
-  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>);
+  } = useCamera(videoRef as React.RefObject<HTMLVideoElement>, cameraSource);
   const {
     detector,
     isLoading: modelLoading,

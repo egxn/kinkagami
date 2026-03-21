@@ -1,0 +1,169 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Pose } from "@tensorflow-models/pose-detection";
+import type { RecordingAngleEntry } from "../utils/poseUtils";
+import {
+  drawPosesOnCanvas,
+  drawRecordedPose,
+  type PoseModelKind,
+} from "../utils/canvasDrawing";
+import type { Exercise } from "../types/exercise";
+import "./Skeleton.scss";
+
+export type SkeletonVariant = "centered" | "video";
+
+export interface SkeletonColors {
+  skeleton?: string;
+  keypoints?: string;
+}
+
+export interface SkeletonProps {
+  className?: string;
+  variant?: SkeletonVariant;
+  autoSize?: boolean;
+  width?: number;
+  height?: number;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  poses?: Pose[];
+  angles?: RecordingAngleEntry[];
+  exercise?: Exercise;
+  frameIndex?: number;
+  opacity?: number;
+  colors?: SkeletonColors;
+  poseModel?: PoseModelKind;
+}
+
+const DEFAULT_WIDTH = 640;
+const DEFAULT_HEIGHT = 480;
+
+export default function Skeleton({
+  className,
+  variant = "centered",
+  autoSize = false,
+  width = DEFAULT_WIDTH,
+  height = DEFAULT_HEIGHT,
+  videoRef,
+  poses,
+  angles,
+  exercise,
+  frameIndex,
+  opacity = 1,
+  colors,
+  poseModel = "auto",
+}: SkeletonProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [measuredSize, setMeasuredSize] = useState<{ w: number; h: number }>();
+
+  const size = useMemo(() => {
+    if (autoSize) {
+      return {
+        w: Math.max(1, measuredSize?.w ?? width),
+        h: Math.max(1, measuredSize?.h ?? height),
+      };
+    }
+    return { w: Math.max(1, width), h: Math.max(1, height) };
+  }, [autoSize, measuredSize?.w, measuredSize?.h, width, height]);
+
+  useEffect(() => {
+    if (!autoSize) return;
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      setMeasuredSize({
+        w: Math.round(rect.width),
+        h: Math.round(rect.height),
+      });
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [autoSize]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = size.w;
+    const displayH = size.h;
+
+    const backingW = Math.max(1, Math.floor(displayW * dpr));
+    const backingH = Math.max(1, Math.floor(displayH * dpr));
+
+    if (canvas.width !== backingW) canvas.width = backingW;
+    if (canvas.height !== backingH) canvas.height = backingH;
+
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const skeletonColor = colors?.skeleton;
+    const keypointColor = colors?.keypoints;
+
+    if (variant === "video") {
+      const video = videoRef?.current ?? null;
+      if (!video) {
+        ctx.clearRect(0, 0, displayW, displayH);
+        return;
+      }
+
+      const livePoses = poses ?? [];
+
+      drawPosesOnCanvas(canvas, video, livePoses, {
+        opacity,
+        skeletonColor,
+        keypointColor,
+        poseModel,
+        fitMode: "cover",
+        renderWidth: displayW,
+        renderHeight: displayH,
+      });
+      return;
+    }
+
+    const centeredFrameIndex = Math.max(0, frameIndex ?? 0);
+    const centeredPoses =
+      exercise?.recording_points?.[centeredFrameIndex]?.poses ?? poses ?? [];
+    const centeredAngles =
+      exercise?.recording_angles?.[centeredFrameIndex]?.angles ?? angles;
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    drawRecordedPose(
+      ctx,
+      displayW,
+      displayH,
+      centeredPoses,
+      centeredAngles,
+      skeletonColor,
+      keypointColor,
+      poseModel,
+    );
+    ctx.restore();
+  }, [
+    angles,
+    colors?.keypoints,
+    colors?.skeleton,
+    exercise,
+    frameIndex,
+    opacity,
+    poses,
+    poseModel,
+    size.h,
+    size.w,
+    variant,
+    videoRef,
+  ]);
+
+  return (
+    <div ref={wrapperRef} className={`skeleton ${className ?? ""}`.trim()}>
+      <canvas ref={canvasRef} className="skeleton__canvas" />
+    </div>
+  );
+}

@@ -18,6 +18,74 @@ No cloud dependency is required for core operation.
 
 ---
 
+## Quick Start
+
+### 1. Install everything
+
+```bash
+pnpm setup
+```
+
+This installs frontend dependencies (pnpm), backend dependencies (poetry), and runs database migrations.
+
+### 2. Configure
+
+```bash
+pnpm configure
+```
+
+Interactive wizard that generates `src/config/defaultAppConfig.json` with your preferred pose model, camera source, runtime mode, and evaluation type.
+
+### 3. Run (development)
+
+```bash
+# Browser-only inference (workers)
+pnpm dev:frontend
+
+# With Python backend (camera + inference via WebSocket)
+pnpm dev:python
+
+# Plain Vite dev server
+pnpm dev
+```
+
+### 4. Run (production)
+
+```bash
+# Build and serve
+pnpm start
+
+# Build and serve with Python backend
+pnpm start:python
+```
+
+---
+
+## Available Scripts
+
+| Command | Purpose |
+|---|---|
+| `pnpm setup` | Install pnpm + poetry deps, run DB migrations |
+| `pnpm configure` | Interactive configuration wizard |
+| `pnpm dev` | Vite dev server |
+| `pnpm dev:frontend` | Dev with browser-only inference (workers) |
+| `pnpm dev:python` | Dev with Python backend + Vite |
+| `pnpm dev:videos` | Dev with local video server |
+| `pnpm dev:stream` | Dev with MJPEG stream |
+| `pnpm build` | TypeScript check + Vite build |
+| `pnpm start` | Build + preview (production) |
+| `pnpm start:python` | Production with Python backend |
+| `pnpm preview` | Serve existing build |
+| `pnpm test` | Run tests |
+| `pnpm test:watch` | Run tests in watch mode |
+| `pnpm lint` | ESLint |
+| `pnpm format` | Prettier |
+| `pnpm db:migrate` | Load seed data into local DB |
+| `pnpm db:seeds:generate` | Export current DB to seed files |
+| `pnpm kiosk` | Launch Chromium in kiosk mode |
+
+---
+
 ## Current Runtime Model
 
 - Main thread:
@@ -29,6 +97,8 @@ No cloud dependency is required for core operation.
   - session comparator runtime mode can run in `workers` or `site`
 - Browser-local path:
   - BlazePose runs with local MediaPipe assets (offline)
+- Python backend path:
+  - Camera capture + inference via WebSocket
 
 See full design details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -44,14 +114,40 @@ Config domains:
   - `poseModel`: `movenet` or `blazepose`
   - model variants for MoveNet, BlazePose, HandPose
 - `camera`
-  - `flow`: `web` or `streamUrl`
-  - `streamUrl`: MJPEG URL used when flow is `streamUrl` (example: `http://localhost:8090/?action=stream`)
+  - `source`: `web` or `streamUrl`
+  - `streamUrl`: MJPEG URL used when source is `streamUrl`
 - `runtime`
-  - `execution`: `workers` or `site`
+  - `execution`: `workers`, `site`, or `python`
+  - `backend`: `webgl` or `wasm`
+  - `pythonWebSocketUrl`: WebSocket URL for Python backend
 - `evaluation`
   - `type`: `fsm` or `grid`
 
+A separate test config (`src/config/testAppConfig.json`) provides browser-friendly defaults for the test suite.
+
 The active evaluation mode controls how the Trainer score is computed.
+
+---
+
+## Project Structure
+
+```
+src/
+├── ui/              Pure presentational components (no project logic)
+├── components/      Connected wrappers (inject hooks/context into UI)
+├── inference/       Inference abstraction layer
+│   ├── providers/   Backend-specific implementations (MoveNet, BlazePose, Python)
+│   ├── usePoseInference.ts
+│   └── useHandInference.ts
+├── hooks/           Application hooks
+├── context/         React context providers
+├── services/        Business logic services
+├── views/           Page-level views
+├── types/           TypeScript type definitions
+├── config/          App and test configuration
+├── db/              Database service and seed definitions
+└── tests/           Test suite
+```
 
 ---
 
@@ -93,55 +189,26 @@ This model supports deterministic validation and easy iteration.
 
 ---
 
-## Development
+## Seeds and Board Migration
 
-Install dependencies:
-
-```bash
-pnpm install
-```
-
-Run dev server:
+Generate portable seed files from local PouchDB and load them back.
 
 ```bash
-pnpm dev
-```
+# Generate seeds from current local DB
+pnpm db:seeds:generate
 
-Run tests:
+# Load seeds into local DB
+pnpm db:migrate
 
-```bash
-pnpm test
-```
-
----
-
-## Seeds And Board Migration
-
-You can now generate portable seed files from local PouchDB and load them back.
-
-Generate seeds from current local DB:
-
-```bash
-pnpm run db:seeds:generate
-```
-
-Load seeds into local DB:
-
-```bash
-pnpm run db:seeds:load
-```
-
-Reset local DB before loading seeds:
-
-```bash
-KGM_SEEDS_RESET=1 pnpm run db:seeds:load
+# Reset local DB before loading seeds
+KGM_SEEDS_RESET=1 pnpm db:migrate
 ```
 
 Generated seed outputs:
 
-- exercises: src/db/exercises
-- routines: src/db/routines
-- manifest: setup/seeds/manifest.json
+- exercises: `src/db/exercises`
+- routines: `src/db/routines`
+- manifest: `setup/seeds/manifest.json`
 
 Board workflow:
 

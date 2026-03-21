@@ -74,7 +74,8 @@
     "model_error": "Error de modelo"
   },
   "splash": {
-    "start": "Iniciar"
+    "start": "Iniciar",
+    "waiting_camera": "Conectando con la cámara..."
   },
   "models": {
     "model": "Modelo",

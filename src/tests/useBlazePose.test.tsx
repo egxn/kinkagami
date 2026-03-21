@@ -31,7 +31,7 @@ vi.mock("../utils/modelVersions", () => ({
     `/models/blazepose/landmark/${version}/model.json`,
 }));
 
-import { useBlazePose } from "../hooks/useBlazePose";
+import { useBlazePose } from "../inference";
 
 interface BlazePoseState {
   detector: unknown;

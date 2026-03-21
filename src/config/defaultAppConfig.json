@@ -11,8 +11,10 @@
     "streamUrl": "http://localhost:8090/?action=stream"
   },
   "runtime": {
-    "execution": "workers",
-    "backend": "webgl"
+    "execution": "python",
+    "backend": "wasm",
+    "pythonWebSocketUrl": "ws://127.0.0.1:8765",
+    "pythonStreamUrl": "http://localhost:8090/stream"
   },
   "evaluation": {
     "type": "fsm"

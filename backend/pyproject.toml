@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "kinkagami-camera-backend"
+version = "0.1.0"
+description = "Python websocket backend for camera inference with MoveNet TFLite and MediaPipe."
+authors = ["OpenAI Codex"]
+readme = "README.md"
+packages = [{ include = "kgm_backend", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mediapipe = "^0.10.14"
+numpy = "^2.1.0"
+opencv-python = "^4.10.0.84"
+ai-edge-litert = { version = "^1.0", markers = "platform_system == 'Linux'" }
+typing-extensions = "^4.12.2"
+websockets = "^15.0"
+aiohttp = "^3.9"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.0"
+
+[tool.poetry.scripts]
+kgm-camera-backend = "kgm_backend.server:main"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/kgm_backend/server.py" = ["ANN401"]
