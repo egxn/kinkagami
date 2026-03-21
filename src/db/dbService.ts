@@ -258,11 +258,8 @@ async function ensureSeedRoutinesIfEmpty(): Promise<void> {
  */
 export async function loadExerciseFromJSON(exerciseFileName: string) {
   try {
-    // Use Vite's glob import pattern to load JSON dynamically
-    const module = await import(`./exercises/${exerciseFileName}.json`);
-    const exerciseData = module.default;
-
-    console.log(`Exercise loaded: ${exerciseData.exercise_id}`);
+    // JSON import eliminado: exercises/*.json ya no existe
+    throw new Error("Importación de exercises/*.json eliminada: el archivo ya no existe");
     return exerciseData;
   } catch (error) {
     console.error(`Error loading exercise ${exerciseFileName}:`, error);
