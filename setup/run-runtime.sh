@@ -24,10 +24,7 @@ case "$MODE" in
     export VITE_KGM_PYTHON_STREAM_URL="$PYTHON_STREAM_URL"
 
     # Start the Python backend in the background
-    # PYTHONPATH includes system site-packages so packages like mediapipe
-    # installed via pip3 (e.g. on ARM64) are visible inside the Poetry venv.
-    SYSTEM_SITE_PKGS="$(python3 -c 'import site; print(":".join(site.getsitepackages()))' 2>/dev/null || true)"
-    cd backend && PYTHONPATH="${SYSTEM_SITE_PKGS}" poetry run kgm-camera-backend \
+    cd backend && poetry run kgm-camera-backend \
       --host "${PYTHON_WS_HOST}" \
       --port "${PYTHON_WS_PORT}" \
       --stream-port "${PYTHON_STREAM_PORT}" &

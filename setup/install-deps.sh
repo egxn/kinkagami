@@ -207,11 +207,11 @@ install_project_deps() {
   poetry install
   ok "Backend dependencies installed"
 
-  # mediapipe has no official aarch64 wheel on PyPI but pip3 can resolve it
-  # on some ARM boards (e.g. Radxa). Install it system-wide; the Poetry venv
-  # will pick it up via system-site-packages (configured above).
-  info "Installing mediapipe (system-wide via pip3)..."
-  if pip3 install mediapipe --prefer-binary; then
+  # Install mediapipe directly into the Poetry venv using its own pip.
+  # --prefer-binary avoids source builds that require extra native toolchains.
+  info "Installing mediapipe into Poetry venv..."
+  VENV_PIP="$(poetry env info --path)/bin/pip"
+  if "$VENV_PIP" install mediapipe --prefer-binary; then
     ok "mediapipe installed"
   else
     echo -e "  ${YELLOW}⏭${RESET} mediapipe not available for $(uname -m) — skipped"
@@ -220,7 +220,48 @@ install_project_deps() {
   cd "$PROJECT_ROOT"
 }
 
-# ─── Summary ────────────────────────────────────────────────────────────────
+# ─── Autostart systemd service ───────────────────────────────────────────────
+
+install_autostart() {
+  echo ""
+  echo -e "${BOLD}── Autostart (systemd) ──${RESET}"
+
+  SCRIPT_DIR_ABS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  PROJECT_ROOT_ABS="$(cd "$SCRIPT_DIR_ABS/.." && pwd)"
+  SERVICE_NAME="kinkagami"
+  SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+  USER_NAME="$(whoami)"
+
+  # Build an environment PATH that includes pyenv and pnpm/nvm node
+  AUTOSTART_PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$HOME/.local/bin:$NVM_DIR/versions/node/$(node --version 2>/dev/null | tr -d v)/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+  sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=Kinkagami (pnpm dev:python)
+After=network.target
+
+[Service]
+Type=simple
+User=${USER_NAME}
+WorkingDirectory=${PROJECT_ROOT_ABS}
+Environment="HOME=${HOME}"
+Environment="PATH=${AUTOSTART_PATH}"
+Environment="PYENV_ROOT=${HOME}/.pyenv"
+Environment="NVM_DIR=${NVM_DIR}"
+ExecStart=/bin/bash -lc 'eval "\$(pyenv init -)" && pnpm dev:python'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable "$SERVICE_NAME"
+  ok "Autostart enabled: systemctl status ${SERVICE_NAME}"
+}
+
+
 
 summary() {
   echo ""
@@ -236,7 +277,8 @@ summary() {
   echo ""
   echo -e "  Next steps:"
   echo -e "    ${BOLD}./setup/configure.sh${RESET}          # Configure the app"
-  echo -e "    ${BOLD}pnpm dev:python${RESET}               # Run with Python backend"
+  echo -e "    ${BOLD}pnpm dev:python${RESET}               # Run manually"
+  echo -e "    ${BOLD}sudo systemctl start kinkagami${RESET} # Start now"
   echo ""
 }
 
@@ -254,4 +296,5 @@ install_poetry
 install_nvm_node
 install_pnpm
 install_project_deps
+install_autostart
 summary
