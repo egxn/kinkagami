@@ -271,7 +271,10 @@ chromium --kiosk \
   --disable-session-crashed-bubble \
   --disable-features=TranslateUI \
   --disable-gpu \
-  --disable-software-rasterizer \
+  --disable-gpu-sandbox \
+  --use-gl=swiftshader \
+  --disable-dev-shm-usage \
+  --no-sandbox \
   --start-fullscreen \
   "http://localhost:\${FRONTEND_PORT}" &
 

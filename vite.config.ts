@@ -7,6 +7,11 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  build: {
+    rollupOptions: {
+      external: ["leveldown", "node-gyp-build"],
+    },
+  },
   server: {
     proxy: {
       "/api/videos": {
