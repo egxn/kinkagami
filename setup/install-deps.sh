@@ -230,10 +230,21 @@ install_autostart() {
   PROJECT_ROOT_ABS="$(cd "$SCRIPT_DIR_ABS/.." && pwd)"
   SERVICE_NAME="kinkagami"
   SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+  WRAPPER="$SCRIPT_DIR_ABS/autostart.sh"
   USER_NAME="$(whoami)"
 
-  # Build an environment PATH that includes pyenv and pnpm/nvm node
-  AUTOSTART_PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$HOME/.local/bin:$NVM_DIR/versions/node/$(node --version 2>/dev/null | tr -d v)/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  # Generate a wrapper script that sets up the environment at runtime
+  cat > "$WRAPPER" <<'WRAPPER_EOF'
+#!/usr/bin/env bash
+set -e
+export PYENV_ROOT="${HOME}/.pyenv"
+export PATH="${PYENV_ROOT}/bin:${PATH}"
+eval "$(pyenv init -)"
+export NVM_DIR="${HOME}/.nvm"
+[ -s "${NVM_DIR}/nvm.sh" ] && . "${NVM_DIR}/nvm.sh"
+exec pnpm dev:python
+WRAPPER_EOF
+  chmod +x "$WRAPPER"
 
   sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -245,10 +256,7 @@ Type=simple
 User=${USER_NAME}
 WorkingDirectory=${PROJECT_ROOT_ABS}
 Environment="HOME=${HOME}"
-Environment="PATH=${AUTOSTART_PATH}"
-Environment="PYENV_ROOT=${HOME}/.pyenv"
-Environment="NVM_DIR=${NVM_DIR}"
-ExecStart=/bin/bash -lc 'eval "\$(pyenv init -)" && pnpm dev:python'
+ExecStart=${WRAPPER}
 Restart=on-failure
 RestartSec=5
 
@@ -258,9 +266,8 @@ EOF
 
   sudo systemctl daemon-reload
   sudo systemctl enable "$SERVICE_NAME"
-  ok "Autostart enabled: systemctl status ${SERVICE_NAME}"
+  ok "Autostart enabled — run: sudo systemctl start ${SERVICE_NAME}"
 }
-
 
 
 summary() {
