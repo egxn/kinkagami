@@ -42,6 +42,7 @@ install_apt_packages() {
     git
     build-essential
     ffmpeg
+    chromium
     # OpenCV runtime deps
     libgl1
     libglib2.0-0
@@ -261,6 +262,7 @@ FRONTEND_PORT=5173
 bash "\${PROJECT_ROOT}/setup/wait-for-port.sh" 127.0.0.1 "\${FRONTEND_PORT}" 60
 
 export DISPLAY="\${DISPLAY:-:0}"
+xhost +local: 2>/dev/null || true
 chromium --kiosk \
   --use-fake-ui-for-media-stream \
   --autoplay-policy=no-user-gesture-required \
@@ -268,6 +270,8 @@ chromium --kiosk \
   --disable-infobars \
   --disable-session-crashed-bubble \
   --disable-features=TranslateUI \
+  --disable-gpu \
+  --disable-software-rasterizer \
   --start-fullscreen \
   "http://localhost:\${FRONTEND_PORT}" &
 
@@ -278,7 +282,8 @@ WRAPPER_EOF
   sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Kinkagami (pnpm dev:python)
-After=network.target
+After=network.target graphical.target
+Wants=graphical.target
 
 [Service]
 Type=simple
