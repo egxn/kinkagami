@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import PouchDB from "pouchdb";
+import leveldown from "leveldown";
 
 const ROOT = process.cwd();
 const EXERCISE_SEEDS_DIR = path.join(ROOT, "src", "db", "exercises");
@@ -82,7 +83,7 @@ const loadExercises = async () => {
     });
   }
 
-  const db = new PouchDB(EXERCISES_DB_NAME);
+  const db = new PouchDB(EXERCISES_DB_NAME, { db: leveldown });
   try {
     if (RESET_BEFORE_LOAD) {
       await removeAllDocs(db);
@@ -130,7 +131,7 @@ const loadRoutines = async () => {
     });
   }
 
-  const db = new PouchDB(ROUTINES_DB_NAME);
+  const db = new PouchDB(ROUTINES_DB_NAME, { db: leveldown });
   try {
     if (RESET_BEFORE_LOAD) {
       await removeAllDocs(db);

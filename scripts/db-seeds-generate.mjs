@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import PouchDB from "pouchdb";
+import leveldown from "leveldown";
 
 const ROOT = process.cwd();
 const EXERCISE_SEEDS_DIR = path.join(ROOT, "src", "db", "exercises");
@@ -113,7 +114,7 @@ const toPortableRoutine = (doc, exerciseIdByDocId) => {
 };
 
 const readDocs = async (dbName) => {
-  const db = new PouchDB(dbName);
+  const db = new PouchDB(dbName, { db: leveldown });
   try {
     const result = await db.allDocs({ include_docs: true });
     return result.rows
