@@ -11,7 +11,7 @@ import { logger } from "../../utils/logger";
 import Button from "../../components/Button";
 import usePoseContext from "../../context/usePoseContext";
 
-const ROUTINES_PER_PAGE = 2;
+const ROUTINES_PER_PAGE = 1;
 
 interface RoutinesViewProps {
   routines: Routine[];
@@ -41,10 +41,7 @@ export function RoutinesView({
     goPrevious,
     goNext,
   } = usePagedCarousel(routines, ROUTINES_PER_PAGE);
-  const visibleSlots = [
-    routinesToRender[0] ?? null,
-    routinesToRender[1] ?? null,
-  ] as const;
+  const currentRoutine = routinesToRender[0] ?? null;
 
   logger.log("RoutinesView", "Render state", {
     loading,
@@ -56,12 +53,12 @@ export function RoutinesView({
     routinesToRenderCount: routinesToRender.length,
   });
 
-  const slotNodes = visibleSlots.map((routine) =>
-    routine ? (
+  const slotNodes = [
+    currentRoutine ? (
       <RoutineCard
-        routine={routine}
+        routine={currentRoutine}
         onDoubleClick={() => {
-          setSelectedRoutine(routine);
+          setSelectedRoutine(currentRoutine);
           navigate("/stack/session");
         }}
         onDiscard={() => {
@@ -70,21 +67,21 @@ export function RoutinesView({
               "RoutinesView",
               "Routine discard action ignored (no handler)",
               {
-                routineId: routine._id ?? null,
-                routineName: routine.name ?? null,
+                routineId: currentRoutine._id ?? null,
+                routineName: currentRoutine.name ?? null,
               },
             );
             return;
           }
 
-          void onDiscardRoutine(routine);
+          void onDiscardRoutine(currentRoutine);
         }}
       />
     ) : null,
-  );
+  ];
 
-  const actionSlotNodes = visibleSlots.map((routine) =>
-    routine ? (
+  const actionSlotNodes = [
+    currentRoutine ? (
       <Button
         videoRef={videoRef}
         streamReady={streamReady}
@@ -94,19 +91,19 @@ export function RoutinesView({
               "RoutinesView",
               "Routine delete action ignored (no handler)",
               {
-                routineId: routine._id ?? null,
-                routineName: routine.name ?? null,
+                routineId: currentRoutine._id ?? null,
+                routineName: currentRoutine.name ?? null,
               },
             );
             return;
           }
 
-          void onDiscardRoutine(routine);
+          void onDiscardRoutine(currentRoutine);
         }}
         onDiscard={() =>
           logger.log("RoutinesView", "Routine delete action discarded", {
-            routineId: routine._id ?? null,
-            routineName: routine.name ?? null,
+            routineId: currentRoutine._id ?? null,
+            routineName: currentRoutine.name ?? null,
           })
         }
         alignX="center"
@@ -122,7 +119,7 @@ export function RoutinesView({
         <div>{t("routines.delete")}</div>
       </Button>
     ) : null,
-  );
+  ];
 
   return (
     <CardLayout
@@ -130,7 +127,7 @@ export function RoutinesView({
       title={t("routines.title")}
       loading={loading}
       error={error}
-      isEmpty={routinesToRender.length === 0}
+      isEmpty={!currentRoutine && !loading && !error}
       loadingMessage={t("routines.loading")}
       emptyMessage={t("routines.empty")}
       errorPrefix={t("routines.error_prefix")}
@@ -143,11 +140,11 @@ export function RoutinesView({
       actionSlots={actionSlotNodes}
       transitionDirection={transitionDirection}
       transitionKey={startIndex}
-      navSlotWidth={220}
-      cardSlotFlex={1.6}
-      cardSlotHeightPercent={78}
-      actionSlotHeightPercent={22}
-      navButtonSize={200}
+      navSlotWidth={160}
+      cardSlotFlex={1}
+      cardSlotHeightPercent={76}
+      actionSlotHeightPercent={24}
+      navButtonSize={140}
       footerButtonLabel={t("routines.new_routine")}
       footerButtonOnAction={() => navigate("/stack/exercises")}
       footerButtonOnDiscard={() =>

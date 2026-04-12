@@ -1,150 +1,79 @@
 # Copilot Instructions – Smart Fitness Mirror
 
-This repository contains the software for a **smart fitness mirror** running on an embedded board (Radxa-class SBC).
-
-Copilot should follow these principles when generating code, suggestions, or refactors.
+Offline, privacy-respecting fitness mirror running on a **Radxa-class SBC**. See [ARCHITECTURE.md](../ARCHITECTURE.md) for full system design.
 
 ---
 
-## 1. Project Context
+## Build & Test
 
-This project includes:
+```bash
+pnpm install                # install frontend deps
+pnpm setup                  # install all deps + migrate DB
+pnpm configure              # interactive config wizard (generates src/config/defaultAppConfig.json)
+pnpm dev                    # Vite dev server
+pnpm dev:frontend           # dev with Python backend
+pnpm build                  # tsc + vite build
+pnpm test                   # vitest run (jsdom, src/tests/**/*.test.{ts,tsx})
+pnpm lint                   # eslint
+pnpm db:migrate             # seed PouchDB from src/db/exercises/*.json
+pnpm kiosk                  # launch Chromium in kiosk mode
+```
 
-- Real-time **human pose detection**
-- Exercise validation using:
-  - Finite State Machines (FSM)
-  - Directed graphs
-  - Temporal constraints
-  - Angle-based rules
-- A **ghost vs user** visualization system
-- Offline-first architecture
-- Local-only data storage (no cloud by default)
-
-The system runs on **limited hardware**, so performance and simplicity matter.
-
----
-
-## 2. Architectural Principles
-
-Copilot should assume:
-
-- **Client-side / local-first**
-- No external servers required
-- Exercises are defined as **versioned JSON schemas**
-- JSON is the _source of truth_
-- Databases are used only for runtime queries and persistence
-
-Avoid:
-
-- Heavy abstractions
-- Over-engineered patterns
-- Unnecessary frameworks
+Tests use `src/tests/setup.ts` which loads `src/config/testAppConfig.json` (forces `webgl` + `site` execution mode — safe for browser-less CI).
 
 ---
 
-## 3. Rendering Guidelines
+## Architecture
 
-- Prefer **Canvas 2D** over WebGL / Three.js
-- Rendering should be **decoupled** from validation logic
-- Visualization uses:
-  - Skeleton lines
-  - Keypoints
-  - Angles
-  - Simple overlays
+The system is split into five clean layers. Never mix them:
 
-Avoid:
-
-- Full 3D avatars unless explicitly requested
-- GPU-heavy solutions
+| Layer | Path | Rule |
+|---|---|---|
+| Inference | `src/inference/` | Abstracts all pose/hand backends. Only entry points: `usePoseInference()`, `useHandInference()`. Never import providers directly. |
+| UI | `src/ui/` | Pure presentational — React, SCSS, `src/types/`, rendering utils only. No hooks, context, services, or db imports. |
+| Connected | `src/components/` | Wraps `src/ui/` with hooks/context. Views import from here, not `src/ui/`. |
+| Services | `src/services/` | Business logic: session comparator, hand detection loop. No React. |
+| DB | `src/db/` | PouchDB access only. Never place DB files in `/public`. Access only through `dbService.ts`. |
 
 ---
 
-## 4. Performance Constraints
+## Key Conventions
 
-The target hardware is a **Radxa SBC**.
+**Exercises**
+- Definitions live in `src/db/exercises/*.json` (not `public/`), loaded at runtime via PouchDB.
+- To add a new exercise, update the `EXERCISE_FILES` registry in `src/db/exercises/index.ts`.
+- On first `getAllExercises()` call, the DB auto-seeds from JSON if empty — this is intentional.
 
-Therefore:
+**Configuration**
+- Source of truth: `src/config/defaultAppConfig.json`, persisted in `localStorage`.
+- Config domains: `models`, `camera`, `runtime` (`workers` | `site` | `python`), `evaluation` (`fsm` | `grid`).
+- Config changes propagate via a custom `window` event — no page reload needed.
 
-- Prefer lightweight algorithms
-- Avoid multiple ML models running in parallel
-- Use **Web Workers** whenever possible for:
-  - Pose processing
-  - FSM / graph evaluation
-  - Scoring
-  - Temporal validation
+**Rendering**
+- Prefer Canvas 2D. No WebGL / Three.js / 3D avatars unless explicitly requested.
+- Rendering is always decoupled from validation logic.
 
-The main thread should stay responsive and focused on UI.
+**Workers**
+- Offload to Web Workers: pose processing, FSM evaluation, scoring, temporal validation.
+- Main thread: UI rendering and camera stream only.
 
----
-
-## 5. Pose & Gesture Logic
-
-- Prefer reusing **existing pose keypoints**
-- Gestures should be:
-  - Rule-based
-  - Time-constrained
-  - Debounced
-- Avoid adding a separate hand-tracking model unless strictly necessary
+**Gestures / hand pose**
+- Rule-based, time-constrained, debounced.
+- Reuse existing pose keypoints. Do not add a second hand-tracking model.
 
 ---
 
-## 6. Data & Storage
+## Hardware Constraints
 
-- Databases must NOT be placed in `/public`
-- Use local storage solutions such as:
-  - SQLite
-  - IndexedDB
-  - PouchDB
-- Access data through a local API layer
-
-Exercise definitions:
-
-- Live in JSON files
-- Are versioned
-- Can be migrated into the local DB
+Target: Radxa SBC. Assume:
+- No GPU, no touch screen, no cloud, no unlimited memory.
+- Single ML model at a time.
+- Lightweight algorithms only.
 
 ---
 
-## 7. Networking & Control
+## Style
 
-- The mirror is controlled via:
-  - Local web interface
-  - QR code access
-  - Wi-Fi (preferred over Bluetooth)
-- Mobile devices interact via HTTP/WebSocket
-- No direct DB access from clients
-
----
-
-## 8. Coding Style Preferences
-
-- Prefer **clear and readable code**
-- Avoid overly clever solutions
-- Small, composable functions
-- Explicit state machines over implicit logic
-- Comments are welcome when logic is non-trivial
-
-When in doubt:
-
-> choose clarity and robustness over abstraction.
-
----
-
-## 9. What Copilot Should NOT Assume
-
-- No cloud connectivity
-- No touch screen
-- No powerful GPU
-- No unlimited memory
-- No need for enterprise-scale solutions
-
----
-
-## 10. Goal
-
-The goal is to build a **robust, offline, privacy-respecting fitness mirror** with:
-
-- Clear feedback
-- Deterministic behavior
-- Easy-to-evolve exercise definitions
-- Strong separation between logic, rendering, and data
+- Clarity over cleverness. Small composable functions. Explicit FSMs over implicit heuristics.
+- Comments on non-trivial logic are welcome.
+- No enterprise-scale abstractions or unnecessary frameworks.

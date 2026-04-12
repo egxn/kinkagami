@@ -16,7 +16,7 @@ import { usePagedCarousel } from "../../hooks";
 import { logger } from "../../utils/logger";
 import "./Exercises.scss";
 
-const EXERCISES_PER_PAGE = 3;
+const EXERCISES_PER_PAGE = 1;
 
 interface ExercisesProps {
   onRoutineCreated?: () => void | Promise<void>;
@@ -48,11 +48,7 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
   );
   const selectedCount = selectedIds.length;
 
-  const visibleSlots = [
-    visibleExercises[0] ?? null,
-    visibleExercises[1] ?? null,
-    visibleExercises[2] ?? null,
-  ] as const;
+  const currentExercise = visibleExercises[0] ?? null;
 
   // Load exercises from database
   useEffect(() => {
@@ -72,40 +68,37 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
     loadExercises();
   }, []);
 
-  const slotNodes = visibleSlots.map((exercise) =>
-    exercise ? (
+  const currentExerciseId = currentExercise
+    ? currentExercise._id || currentExercise.exercise_id || ""
+    : "";
+  const currentReps = currentExercise
+    ? Math.max(1, selectedRepsById[currentExerciseId] ?? currentExercise.reps ?? 1)
+    : 1;
+
+  const slotNodes = [
+    currentExercise ? (
       <ExerciseCard
-        exercise={exercise}
-        isSelected={
-          (exercise._id || exercise.exercise_id || "") in selectedRepsById
-        }
-        onClick={() =>
-          handleExerciseClick(exercise._id || exercise.exercise_id || "")
-        }
+        exercise={currentExercise}
+        isSelected={currentExerciseId in selectedRepsById}
+        onClick={() => handleExerciseClick(currentExerciseId)}
       />
     ) : null,
-  );
+  ];
 
-  const actionSlotNodes = visibleSlots.map((exercise) => {
-    if (!exercise) return null;
-
-    const id = exercise._id || exercise.exercise_id || "";
-    if (!id || !(id in selectedRepsById)) return null;
-    const currentReps = Math.max(1, selectedRepsById[id] ?? exercise.reps ?? 1);
-
-    return (
+  const actionSlotNodes = [
+    currentExercise && currentExerciseId && currentExerciseId in selectedRepsById ? (
       <Button
         videoRef={videoRef}
         streamReady={streamReady}
         onAction={() => {
           setSelectedRepsById((prev) => {
-            if (!(id in prev)) return prev;
-            return { ...prev, [id]: Math.max(1, prev[id] + 1) };
+            if (!(currentExerciseId in prev)) return prev;
+            return { ...prev, [currentExerciseId]: Math.max(1, prev[currentExerciseId] + 1) };
           });
         }}
         onDiscard={() =>
           logger.log("Exercises", "Increment reps action discarded", {
-            exerciseId: id,
+            exerciseId: currentExerciseId,
           })
         }
         alignX="center"
@@ -120,8 +113,8 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
       >
         <div>{t("exercises.reps_plus", { count: currentReps })}</div>
       </Button>
-    );
-  });
+    ) : null,
+  ];
 
   // Toggle exercise selection
   const handleExerciseClick = (exerciseId: string | undefined) => {
@@ -220,11 +213,11 @@ export default function Exercises({ onRoutineCreated }: ExercisesProps) {
       actionSlots={actionSlotNodes}
       transitionDirection={transitionDirection}
       transitionKey={startIndex}
-      navSlotWidth={220}
-      cardSlotFlex={1.2}
-      cardSlotHeightPercent={78}
-      actionSlotHeightPercent={22}
-      navButtonSize={200}
+      navSlotWidth={160}
+      cardSlotFlex={1}
+      cardSlotHeightPercent={76}
+      actionSlotHeightPercent={24}
+      navButtonSize={140}
       footerButtonLabel={
         saving
           ? t("exercises.saving")

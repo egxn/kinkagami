@@ -13,37 +13,76 @@ CONFIG_FILE="$PROJECT_ROOT/src/config/defaultAppConfig.json"
 
 BOLD='\033[1m'
 CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+RESET='\033[0m'
+
+banner() {
+  echo ""
+  echo -e "  ${BOLD}${CYAN}Kinkagami Configuration Wizard${RESET}"
+  echo ""
+}
+
+section() {
+  echo ""
+  echo -e "  ${BOLD}── $1 ──${RESET}"
+}
+
+pick() {
+  local prompt="$1"
+  local default="$2"
+  shift 2
+  echo -ne "  ${prompt} ${GREEN}[${default}]${RESET}: "
+  read -r input
+  REPLY="${input:-$default}"
+}
 
 ask() {
+  local prompt="$1"
+  local default="$2"
+  echo -ne "  ${prompt} ${GREEN}[${default}]${RESET}: "
+  read -r input
+  REPLY="${input:-$default}"
+}
+
+# ─── Wizard Steps ────────────────────────────────────────────────────────────
+
+banner
 
 # --- Runtime (primero) ---
 section "Runtime"
+
 pick "Execution mode:" "workers" "workers" "site" "python"
 RUNTIME_EXECUTION="$REPLY"
 
 # --- Models ---
 section "Pose Model"
+
 pick "Pose detection model:" "movenet" "movenet" "blazepose"
 POSE_MODEL="$REPLY"
+
 if [ "$POSE_MODEL" = "movenet" ]; then
   pick "MoveNet variant:" "lightning" "lightning" "thunder"
   MOVENET_VERSION="$REPLY"
 else
   MOVENET_VERSION="lightning"
 fi
+
 if [ "$POSE_MODEL" = "blazepose" ]; then
   pick "BlazePose variant:" "lite" "lite" "full" "heavy"
   BLAZEPOSE_VERSION="$REPLY"
 else
   BLAZEPOSE_VERSION="lite"
 fi
+
 pick "HandPose variant:" "lite" "lite" "full"
 HANDPOSE_VERSION="$REPLY"
 
 # --- Camera ---
 section "Camera"
+
 pick "Camera source:" "web" "web" "streamUrl"
 CAMERA_FLOW="$REPLY"
+
 STREAM_URL="http://localhost:8090/?action=stream"
 if [ "$CAMERA_FLOW" = "streamUrl" ]; then
   ask "Stream URL" "$STREAM_URL"
@@ -57,69 +96,6 @@ if [ "$RUNTIME_EXECUTION" != "python" ]; then
 else
   TF_BACKEND="webgl"
 fi
-
-PYTHON_WS_URL="ws://127.0.0.1:8765"
-PYTHON_STREAM_URL="http://localhost:8090/stream"
-if [ "$RUNTIME_EXECUTION" = "python" ]; then
-  ask "Python WebSocket URL" "$PYTHON_WS_URL"
-  PYTHON_WS_URL="$REPLY"
-  ask "Python MJPEG Stream URL" "$PYTHON_STREAM_URL"
-  PYTHON_STREAM_URL="$REPLY"
-fi
-  local prompt="$1"
-  local default="$2"
-  echo -ne "  ${prompt} ${GREEN}[${default}]${RESET}: "
-  read -r input
-  REPLY="${input:-$default}"
-}
-
-# ─── Wizard Steps ────────────────────────────────────────────────────────────
-
-banner
-
-# --- Models ---
-section "Pose Model"
-
-pick "Pose detection model:" "movenet" "movenet" "blazepose"
-POSE_MODEL="$REPLY"
-
-if [ "$POSE_MODEL" = "movenet" ]; then
-  pick "MoveNet variant:" "lightning" "lightning" "thunder"
-  MOVENET_VERSION="$REPLY"
-else
-  MOVENET_VERSION="lightning"
-fi
-
-if [ "$POSE_MODEL" = "blazepose" ]; then
-  pick "BlazePose variant:" "lite" "lite" "full" "heavy"
-  BLAZEPOSE_VERSION="$REPLY"
-else
-  BLAZEPOSE_VERSION="lite"
-fi
-
-pick "HandPose variant:" "lite" "lite" "full"
-HANDPOSE_VERSION="$REPLY"
-
-# --- Camera ---
-section "Camera"
-
-pick "Camera source:" "web" "web" "streamUrl"
-CAMERA_FLOW="$REPLY"
-
-STREAM_URL="http://localhost:8090/?action=stream"
-if [ "$CAMERA_FLOW" = "streamUrl" ]; then
-  ask "Stream URL" "$STREAM_URL"
-  STREAM_URL="$REPLY"
-fi
-
-# --- Runtime ---
-section "Runtime"
-
-pick "Execution mode:" "workers" "workers" "site" "python"
-RUNTIME_EXECUTION="$REPLY"
-
-pick "TensorFlow backend:" "webgl" "webgl" "wasm"
-TF_BACKEND="$REPLY"
 
 PYTHON_WS_URL="ws://127.0.0.1:8765"
 PYTHON_STREAM_URL="http://localhost:8090/stream"

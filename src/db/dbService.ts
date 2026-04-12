@@ -1,5 +1,7 @@
 // @ts-expect-error PouchDB types
 import PouchDB from "pouchdb/dist/pouchdb.js";
+// @ts-expect-error leveldown types
+import leveldown from "leveldown";
 import type {
   Exercise,
   RecordingAngle,
@@ -13,9 +15,21 @@ export type { Exercise, RecordingAngle, RecordingPoint, Routine };
 /** @deprecated Use Exercise instead */
 export type ExerciseRecord = Exercise;
 
-// Initialize databases
-export const exercisesDB = new PouchDB("exercises");
-export const routinesDB = new PouchDB("routines");
+// Initialize databases with LevelDB in Node.js, IndexedDB in browser
+function isNode() {
+  return (
+    typeof process !== "undefined" &&
+    process.versions != null &&
+    process.versions.node != null
+  );
+}
+
+export const exercisesDB = isNode()
+  ? new PouchDB("exercises", { db: leveldown })
+  : new PouchDB("exercises");
+export const routinesDB = isNode()
+  ? new PouchDB("routines", { db: leveldown })
+  : new PouchDB("routines");
 
 const exerciseJsonModules = import.meta.glob<{
   default: Record<string, unknown>;

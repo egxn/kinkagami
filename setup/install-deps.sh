@@ -66,25 +66,42 @@ install_apt_packages() {
   fi
 }
 
-# ─── Python 3.11 ────────────────────────────────────────────────────────────
+# ─── Python 3.11 via pyenv ──────────────────────────────────────────────────
+
+PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
+
+_ensure_pyenv_in_path() {
+  export PYENV_ROOT="$PYENV_ROOT"
+  export PATH="$PYENV_ROOT/bin:$PATH"
+  eval "$(pyenv init -)"
+}
 
 install_python() {
   echo ""
-  echo -e "${BOLD}── Python ${PYTHON_VERSION} ──${RESET}"
+  echo -e "${BOLD}── Python ${PYTHON_VERSION} (pyenv) ──${RESET}"
 
-  if command -v "python${PYTHON_VERSION}" &>/dev/null; then
-    skip "python${PYTHON_VERSION} ($(python${PYTHON_VERSION} --version))"
-    return
+  # Install pyenv if missing
+  if [ ! -d "$PYENV_ROOT" ]; then
+    info "Installing pyenv..."
+    curl -fsSL https://pyenv.run | bash
+    ok "pyenv installed"
+  else
+    skip "pyenv"
   fi
 
-  info "Adding deadsnakes PPA and installing python${PYTHON_VERSION}..."
-  sudo add-apt-repository -y ppa:deadsnakes/ppa
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq \
-    "python${PYTHON_VERSION}" \
-    "python${PYTHON_VERSION}-venv" \
-    "python${PYTHON_VERSION}-dev"
-  ok "python${PYTHON_VERSION} installed ($(python${PYTHON_VERSION} --version))"
+  _ensure_pyenv_in_path
+
+  # Install Python version if missing
+  if pyenv versions --bare | grep -qF "${PYTHON_VERSION}"; then
+    skip "python${PYTHON_VERSION}"
+  else
+    info "Installing Python ${PYTHON_VERSION} via pyenv..."
+    pyenv install "${PYTHON_VERSION}"
+    ok "python${PYTHON_VERSION} installed"
+  fi
+
+  pyenv global "${PYTHON_VERSION}"
+  ok "python global set to ${PYTHON_VERSION} ($(python --version))"
 }
 
 # ─── Poetry ─────────────────────────────────────────────────────────────────
@@ -99,7 +116,8 @@ install_poetry() {
   fi
 
   info "Installing Poetry via official installer..."
-  curl -sSL https://install.python-poetry.org | "python${PYTHON_VERSION}" -
+  _ensure_pyenv_in_path
+  curl -sSL https://install.python-poetry.org | python -
   export PATH="$HOME/.local/bin:$PATH"
 
   if command -v poetry &>/dev/null; then
@@ -174,14 +192,18 @@ install_project_deps() {
 
   info "Installing backend (poetry install)..."
   cd "$PROJECT_ROOT/backend"
-  poetry env use "python${PYTHON_VERSION}" 2>/dev/null || true
+  _ensure_pyenv_in_path
+  poetry env use "$(pyenv which python)" 2>/dev/null || true
+  # Allow the venv to see system-installed packages (e.g. mediapipe on ARM64)
+  poetry config virtualenvs.options.system-site-packages true --local
   poetry install
   ok "Backend dependencies installed"
 
-  # mediapipe is optional in pyproject.toml because PyPI has no aarch64 wheel.
-  # Try installing it inside the Poetry venv; on ARM64 this will fail silently.
-  info "Installing mediapipe (optional, skipped on ARM64)..."
-  if poetry run pip install mediapipe 2>/dev/null; then
+  # mediapipe has no official aarch64 wheel on PyPI but pip3 can resolve it
+  # on some ARM boards (e.g. Radxa). Install it system-wide; the Poetry venv
+  # will pick it up via system-site-packages (configured above).
+  info "Installing mediapipe (system-wide via pip3)..."
+  if pip3 install mediapipe --prefer-binary; then
     ok "mediapipe installed"
   else
     echo -e "  ${YELLOW}⏭${RESET} mediapipe not available for $(uname -m) — skipped"
@@ -198,7 +220,7 @@ summary() {
   echo -e "${CYAN}║  ${BOLD}All dependencies ready${RESET}${CYAN}                   ║${RESET}"
   echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
   echo ""
-  echo -e "  python:  $(python${PYTHON_VERSION} --version 2>&1)"
+  echo -e "  python:  $(python --version 2>&1)"
   echo -e "  poetry:  $(poetry --version 2>&1)"
   echo -e "  node:    $(node --version 2>&1)"
   echo -e "  pnpm:    $(pnpm --version 2>&1)"
