@@ -45,8 +45,16 @@ install_apt_packages() {
     # OpenCV runtime deps
     libgl1
     libglib2.0-0
-    # Python 3.11 build deps (for deadsnakes)
-    software-properties-common
+    # Python build deps required by pyenv (missing any of these causes
+    # missing extension modules such as _ctypes, _ssl, _sqlite3, etc.)
+    libffi-dev
+    libssl-dev
+    zlib1g-dev
+    libbz2-dev
+    libreadline-dev
+    libsqlite3-dev
+    liblzma-dev
+    tk-dev
   )
 
   local to_install=()
