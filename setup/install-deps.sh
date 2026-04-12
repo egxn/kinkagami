@@ -233,27 +233,32 @@ install_autostart() {
   WRAPPER="$SCRIPT_DIR_ABS/autostart.sh"
   USER_NAME="$(whoami)"
 
-  # Generate a wrapper script that sets up the environment at runtime
-  # PROJECT_ROOT_ABS is embedded at generation time so the script knows
-  # where to cd regardless of WorkingDirectory.
+  # Generate a wrapper script that sets up the environment at runtime.
+  # All paths are embedded at generation time using PROJECT_ROOT_ABS and HOME
+  # so the script is self-contained and works from a systemd context.
   cat > "$WRAPPER" <<WRAPPER_EOF
 #!/usr/bin/env bash
 set -e
-cd "${PROJECT_ROOT_ABS}"
+
+# Paths embedded at install time — no dependency on env from systemd
+PROJECT_ROOT="${PROJECT_ROOT_ABS}"
 export HOME="${HOME}"
 export PYENV_ROOT="${HOME}/.pyenv"
-export PATH="\${PYENV_ROOT}/bin:\${PATH}"
-eval "\$(pyenv init -)"
 export NVM_DIR="${HOME}/.nvm"
+export PATH="\${PYENV_ROOT}/bin:\${PYENV_ROOT}/shims:\${PATH}"
+
+eval "\$(pyenv init -)"
 [ -s "\${NVM_DIR}/nvm.sh" ] && . "\${NVM_DIR}/nvm.sh"
 
-# Start the app in the background
+cd "\${PROJECT_ROOT}"
+
+# Start backend + frontend
 pnpm dev:python &
 APP_PID=\$!
 
-# Wait for the Vite dev server to be ready, then open Chromium in kiosk mode
+# Wait for Vite dev server, then open Chromium in kiosk mode
 FRONTEND_PORT=5173
-bash "${PROJECT_ROOT_ABS}/setup/wait-for-port.sh" 127.0.0.1 "\${FRONTEND_PORT}" 60
+bash "\${PROJECT_ROOT}/setup/wait-for-port.sh" 127.0.0.1 "\${FRONTEND_PORT}" 60
 
 export DISPLAY="\${DISPLAY:-:0}"
 chromium --kiosk \
