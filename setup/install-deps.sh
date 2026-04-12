@@ -245,7 +245,7 @@ PROJECT_ROOT="${PROJECT_ROOT_ABS}"
 export HOME="${HOME}"
 export PYENV_ROOT="${HOME}/.pyenv"
 export NVM_DIR="${HOME}/.nvm"
-export PATH="\${PYENV_ROOT}/bin:\${PYENV_ROOT}/shims:\${PATH}"
+export PATH="${PYENV_ROOT}/bin:\${PYENV_ROOT}/shims:${HOME}/.local/bin:\${PATH}"
 
 eval "\$(pyenv init -)"
 [ -s "\${NVM_DIR}/nvm.sh" ] && . "\${NVM_DIR}/nvm.sh"
@@ -320,17 +320,39 @@ summary() {
 
 # ─── Main ───────────────────────────────────────────────────────────────────
 
+STEP="${1:-}"
+
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════╗${RESET}"
 echo -e "${CYAN}║  ${BOLD}Kinkagami Dependency Installer${RESET}${CYAN}          ║${RESET}"
 echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
 
-check_debian
-install_apt_packages
-install_python
-install_poetry
-install_nvm_node
-install_pnpm
-install_project_deps
-install_autostart
-summary
+case "$STEP" in
+  autostart)
+    install_autostart
+    ;;
+  deps)
+    check_debian
+    install_apt_packages
+    install_python
+    install_poetry
+    install_nvm_node
+    install_pnpm
+    install_project_deps
+    ;;
+  "")
+    check_debian
+    install_apt_packages
+    install_python
+    install_poetry
+    install_nvm_node
+    install_pnpm
+    install_project_deps
+    install_autostart
+    summary
+    ;;
+  *)
+    echo "Usage: $0 [autostart|deps]" >&2
+    exit 1
+    ;;
+esac
