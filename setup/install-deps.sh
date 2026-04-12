@@ -234,15 +234,39 @@ install_autostart() {
   USER_NAME="$(whoami)"
 
   # Generate a wrapper script that sets up the environment at runtime
-  cat > "$WRAPPER" <<'WRAPPER_EOF'
+  # PROJECT_ROOT_ABS is embedded at generation time so the script knows
+  # where to cd regardless of WorkingDirectory.
+  cat > "$WRAPPER" <<WRAPPER_EOF
 #!/usr/bin/env bash
 set -e
+cd "${PROJECT_ROOT_ABS}"
+export HOME="${HOME}"
 export PYENV_ROOT="${HOME}/.pyenv"
-export PATH="${PYENV_ROOT}/bin:${PATH}"
-eval "$(pyenv init -)"
+export PATH="\${PYENV_ROOT}/bin:\${PATH}"
+eval "\$(pyenv init -)"
 export NVM_DIR="${HOME}/.nvm"
-[ -s "${NVM_DIR}/nvm.sh" ] && . "${NVM_DIR}/nvm.sh"
-exec pnpm dev:python
+[ -s "\${NVM_DIR}/nvm.sh" ] && . "\${NVM_DIR}/nvm.sh"
+
+# Start the app in the background
+pnpm dev:python &
+APP_PID=\$!
+
+# Wait for the Vite dev server to be ready, then open Chromium in kiosk mode
+FRONTEND_PORT=5173
+bash "${PROJECT_ROOT_ABS}/setup/wait-for-port.sh" 127.0.0.1 "\${FRONTEND_PORT}" 60
+
+export DISPLAY="\${DISPLAY:-:0}"
+chromium --kiosk \
+  --use-fake-ui-for-media-stream \
+  --autoplay-policy=no-user-gesture-required \
+  --noerrdialogs \
+  --disable-infobars \
+  --disable-session-crashed-bubble \
+  --disable-features=TranslateUI \
+  --start-fullscreen \
+  "http://localhost:\${FRONTEND_PORT}" &
+
+wait \$APP_PID
 WRAPPER_EOF
   chmod +x "$WRAPPER"
 
