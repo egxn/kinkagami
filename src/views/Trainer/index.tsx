@@ -62,19 +62,12 @@ export default function Trainer() {
       return Math.round((snapshot.gridProgress ?? 0) * 100);
     }
 
-    const nodeScorePercent =
-      snapshot.totalNodes > 0 ? (snapshot.score / snapshot.totalNodes) * 100 : 0;
-    const completionPercent = (snapshot.completion ?? 0) * 100;
-    const rawScore = Number.isFinite(snapshot.score) ? snapshot.score : 0;
-
-    return Math.max(nodeScorePercent, completionPercent, rawScore);
+    return snapshot.progressScore;
   }, [
     evaluationType,
-    snapshot.completion,
     snapshot.gridProgress,
     snapshot.gridScore,
-    snapshot.score,
-    snapshot.totalNodes,
+    snapshot.progressScore,
   ]);
 
   useEffect(() => {

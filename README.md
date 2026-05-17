@@ -1,20 +1,22 @@
 # Smart Fitness Mirror
 
-Local-first, offline fitness mirror for embedded and low-power hardware.
+Local-first, offline fitness mirror for embedded and low-power hardware. Also distributable as an installable PWA for mobile and desktop.
 
 The system detects poses in real time, validates movement quality with deterministic rules, and renders ghost-vs-user feedback directly in the browser.
 
 ---
 
-## What It Does
+## Deployment Targets
 
-- Captures body pose from camera
-- Runs live comparison against exercise definitions
-- Evaluates progress using FSM or grid validation
-- Counts repetitions and advances routine steps automatically
-- Stores exercises/routines locally
+Three distinct build targets share the same codebase:
 
-No cloud dependency is required for core operation.
+| Target | Inference | Camera | Use case |
+|---|---|---|---|
+| **V1 — Python** | Python backend via WebSocket | Hardware (MJPEG/stream) | Dedicated hardware mirror with specialized camera |
+| **V2 — WASM/WebGL** | Browser workers (TF.js) | Hardware (MJPEG/stream) | Standalone kiosk without Python dependency |
+| **V3 — PWA** | Browser workers (TF.js) | Device camera (getUserMedia) | Installable web app for mobile and desktop |
+
+All three use the same inference abstraction layer. The active backend is selected by `runtime.execution` in app config, set at build time via environment variables.
 
 ---
 
@@ -39,24 +41,32 @@ Interactive wizard that generates `src/config/defaultAppConfig.json` with your p
 ### 3. Run (development)
 
 ```bash
-# Browser-only inference (workers)
+# V1 — Python backend (camera + inference via WebSocket)
+pnpm dev:python
+
+# V2 — Browser-only inference (workers)
 pnpm dev:frontend
 
-# With Python backend (camera + inference via WebSocket)
-pnpm dev:python
+# V3 — PWA (device camera, browser inference, service worker)
+pnpm dev:pwa
 
 # Plain Vite dev server
 pnpm dev
 ```
 
+> **Note:** `dev:pwa` and `build:pwa` require Node.js 22+. Use `nvm use 22` if needed (`.nvmrc` is included).
+
 ### 4. Run (production)
 
 ```bash
-# Build and serve
+# V1/V2 — Build and serve
 pnpm start
 
-# Build and serve with Python backend
+# V1 — With Python backend
 pnpm start:python
+
+# V3 — PWA build (outputs dist/ ready for static hosting)
+pnpm build:pwa
 ```
 
 ---
@@ -68,14 +78,18 @@ pnpm start:python
 | `pnpm setup` | Install pnpm + poetry deps, run DB migrations |
 | `pnpm configure` | Interactive configuration wizard |
 | `pnpm dev` | Vite dev server |
-| `pnpm dev:frontend` | Dev with browser-only inference (workers) |
-| `pnpm dev:python` | Dev with Python backend + Vite |
+| `pnpm dev:frontend` | Dev with browser-only inference (V2) |
+| `pnpm dev:python` | Dev with Python backend + Vite (V1) |
+| `pnpm dev:pwa` | Dev with PWA mode (V3) |
 | `pnpm dev:videos` | Dev with local video server |
 | `pnpm dev:stream` | Dev with MJPEG stream |
-| `pnpm build` | TypeScript check + Vite build |
+| `pnpm build` | TypeScript check + Vite build (V1/V2) |
+| `pnpm build:pwa` | Vite PWA build — outputs service worker + manifest (V3) |
+| `pnpm preview:pwa` | Serve existing PWA build locally |
 | `pnpm start` | Build + preview (production) |
 | `pnpm start:python` | Production with Python backend |
 | `pnpm preview` | Serve existing build |
+| `pnpm pwa:icons` | Regenerate PWA icons from `public/icons/kinkagami-source.svg` |
 | `pnpm test` | Run tests |
 | `pnpm test:watch` | Run tests in watch mode |
 | `pnpm lint` | ESLint |
@@ -187,6 +201,12 @@ This model supports deterministic validation and easy iteration.
 - Data is persisted locally (exercise/routine/session records)
 - Database files are not exposed in `public`
 
+**PWA (V3) caching strategy:**
+
+- App shell (JS, CSS, HTML, WASM) is precached by the service worker at install time
+- ML model files under `/models/` are excluded from precache and cached on first use (`CacheFirst`, 1-year TTL)
+- After the first visit (including first inference run), the app works fully offline without any server
+
 ---
 
 ## Seeds and Board Migration
@@ -218,10 +238,39 @@ Board workflow:
 
 ---
 
+## PWA Deployment (V3)
+
+Build and deploy to any static host (Netlify, Vercel, Nginx, S3, etc.):
+
+```bash
+nvm use 22
+pnpm build:pwa
+# upload dist/ to your static host
+```
+
+The output in `dist/` is self-contained:
+
+- `sw.js` — Workbox service worker (handles offline caching)
+- `manifest.webmanifest` — PWA manifest (enables install prompt)
+- `registerSW.js` — Auto-registration script (injected into `index.html`)
+- `workbox-*.js` — Workbox runtime
+
+Users visiting the URL for the first time will be prompted to install the app. On subsequent visits (including offline), the app loads entirely from cache.
+
+To regenerate PWA icons from a new source image:
+
+```bash
+# Replace public/icons/kinkagami-source.svg with your image, then:
+pnpm pwa:icons
+```
+
+---
+
 ## Design Principles
 
-- Offline-first
+- Offline-first across all three targets
 - Deterministic validation
 - Clear separation of concerns
 - Lightweight runtime choices for SBC constraints
 - JSON contracts over hardcoded exercise logic
+- Inference backend decoupled from consumer code — adding new targets requires no changes to consumers

@@ -32,6 +32,12 @@ export interface SessionComparatorSnapshot {
   gridProgress: number;
   gridMatchedKeypoints: number;
   gridTotalKeypoints: number;
+  /** 0–1: fraction of hold accumulated for the current active node */
+  holdProgress: number;
+  /** 0–100: continuous score including partial-hold credit */
+  progressScore: number;
+  /** 0–100: average signal-centering quality across matched nodes (0 = no data) */
+  qualityScore: number;
 }
 
 export interface SessionComparator {
@@ -303,6 +309,27 @@ const computeGridProgress = (
   };
 };
 
+const computeNodeQuality = (
+  node: EventNode,
+  signalValue: number | null,
+  signalDef: SignalDef | undefined,
+): number => {
+  if (
+    node.type === "sync" ||
+    !node.range ||
+    signalValue == null ||
+    !Number.isFinite(signalValue)
+  ) {
+    return 1;
+  }
+  const [min, max] = node.range;
+  const center = (min + max) / 2;
+  const margin = computeRangeMargin(node.range, signalDef);
+  const halfWidth = (max - min) / 2 + margin;
+  if (halfWidth <= 0) return 1;
+  return Math.max(0, 1 - Math.abs(signalValue - center) / halfWidth);
+};
+
 export function createSessionComparator(exercise: Exercise): SessionComparator {
   const gridValidation = exercise.grid_validation;
   const nodes = exercise.event_graph?.nodes ?? [];
@@ -327,6 +354,11 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
   const smoothedSignalHistoryByName = new Map<string, number[]>();
   const liveGridSequenceByKeypoint = new Map<string, number[]>();
   let smoothedGridProgress = 0;
+  let holdProgress = 0;
+  let progressScore = 0;
+  let qualityScore = 0;
+  let nodeQualitySum = 0;
+  let nodeQualityCount = 0;
   let snapshot: SessionComparatorSnapshot = {
     score: 0,
     matchedCount: 0,
@@ -339,6 +371,9 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
     gridProgress: 0,
     gridMatchedKeypoints: 0,
     gridTotalKeypoints: gridValidation?.keypoints.length ?? 0,
+    holdProgress: 0,
+    progressScore: 0,
+    qualityScore: 0,
   };
 
   const getCurrentNode = () => {
@@ -379,6 +414,9 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
         gridMetrics?.matchedKeypoints ?? snapshot.gridMatchedKeypoints,
       gridTotalKeypoints:
         gridMetrics?.totalKeypoints ?? snapshot.gridTotalKeypoints,
+      holdProgress,
+      progressScore,
+      qualityScore,
     };
 
     return snapshot;
@@ -550,12 +588,51 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
           holdAccumulatedMsByNode.delete(node.id);
           inRangeStateByNode.delete(node.id);
           score += 1;
+
+          // Track centering quality for this node
+          const sv = node.signal != null ? activeSignals[node.signal] : null;
+          const sd = node.signal != null ? exercise.signals?.[node.signal] : undefined;
+          nodeQualitySum += computeNodeQuality(node, sv ?? null, sd);
+          nodeQualityCount += 1;
         }
       }
 
       for (const [signalName, signalValue] of Object.entries(activeSignals)) {
         lastSignalValues.set(signalName, signalValue);
       }
+
+      // Compute hold progress for the current active node
+      const activeNodeId = getCurrentNode();
+      holdProgress = 0;
+      if (activeNodeId) {
+        const activeNode = orderedNodes.find((n) => n.id === activeNodeId);
+        if (activeNode) {
+          const hMs = Math.max(
+            0,
+            activeNode.hold_ms && activeNode.hold_ms > 0
+              ? activeNode.hold_ms
+              : DEFAULT_NODE_HOLD_MS,
+          );
+          const accumulated = holdAccumulatedMsByNode.get(activeNodeId) ?? 0;
+          holdProgress = hMs > 0 ? Math.min(1, accumulated / hMs) : 0;
+        }
+      }
+
+      // progressScore: 0-100 continuous, with partial-hold credit (capped at 0.9 to avoid
+      // reaching the node's full share before it officially matches)
+      progressScore =
+        nodes.length > 0
+          ? Math.min(
+              100,
+              ((matched.size + holdProgress * 0.9) / nodes.length) * 100,
+            )
+          : 0;
+
+      // qualityScore: average centering quality across all matched nodes
+      qualityScore =
+        nodeQualityCount > 0
+          ? Math.round((nodeQualitySum / nodeQualityCount) * 100)
+          : 0;
 
       return updateSnapshot(activeSignals, gridMetrics);
     },
@@ -570,6 +647,11 @@ export function createSessionComparator(exercise: Exercise): SessionComparator {
       smoothedSignalHistoryByName.clear();
       liveGridSequenceByKeypoint.clear();
       smoothedGridProgress = 0;
+      holdProgress = 0;
+      progressScore = 0;
+      qualityScore = 0;
+      nodeQualitySum = 0;
+      nodeQualityCount = 0;
       return updateSnapshot(
         {},
         {

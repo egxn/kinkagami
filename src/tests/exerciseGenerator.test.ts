@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createCompletion,
+  createEdges,
   createSignals,
   createSyncNodes,
   generateEventGraph,
@@ -76,5 +77,39 @@ describe("exerciseGenerator", () => {
     expect(Array.isArray(out.eventGraph.nodes)).toBe(true);
     expect(Array.isArray(out.eventGraph.edges)).toBe(true);
     expect(Array.isArray(out.completion.terminal_nodes)).toBe(true);
+  });
+
+  it("createSignals excludes angles below movement threshold (range < 8°)", () => {
+    const flatAngles: RecordingAngle[] = [
+      {
+        timestamp: 0,
+        angles: [{ name: "flat_angle", points: ["left_shoulder", "left_elbow", "left_wrist"], value: 90 }],
+      },
+      {
+        timestamp: 1,
+        angles: [{ name: "flat_angle", points: ["left_shoulder", "left_elbow", "left_wrist"], value: 93 }],
+      },
+    ];
+    const signals = createSignals(flatAngles);
+    expect(Object.keys(signals)).not.toContain("flat_angle");
+  });
+
+  it("createEdges creates sequential edge between consecutive nodes of same signal", () => {
+    const nodesWithTiming = [
+      { node: { id: "n1", signal: "s1", emit: true }, startTimestamp: 0, endTimestamp: 0.5, durationMs: 500 },
+      { node: { id: "n2", signal: "s1", emit: true }, startTimestamp: 0.5, endTimestamp: 1, durationMs: 500 },
+    ];
+    const edges = createEdges(nodesWithTiming as any[], []);
+    expect(edges).toContainEqual({ from: "n1", to: "n2" });
+  });
+
+  it("createCompletion identifies terminal node (node with no outgoing edges)", () => {
+    const nodesWithTiming = [
+      { node: { id: "n1", emit: true }, startTimestamp: 0, endTimestamp: 0.5, durationMs: 500 },
+      { node: { id: "n2", emit: true }, startTimestamp: 0.5, endTimestamp: 1, durationMs: 500 },
+    ];
+    const edges: EventEdge[] = [{ from: "n1", to: "n2" }];
+    const completion = createCompletion(nodesWithTiming as any[], edges);
+    expect(completion.terminal_nodes).toEqual(["n2"]);
   });
 });
