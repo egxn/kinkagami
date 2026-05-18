@@ -1,0 +1,29 @@
+.box-damage-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.box-damage-overlay__flash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(255, 80, 80, 0.24), transparent 58%),
+    rgba(255, 0, 0, 0.18);
+  animation: box-damage-flash 480ms ease-out forwards;
+}
+
+@keyframes box-damage-flash {
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

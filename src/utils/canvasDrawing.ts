@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import type { RecordingAngleEntry } from "./poseUtils";
 
 export type PoseModelKind = "movenet" | "posenet" | "blazepose" | "auto";
+export type VideoPoseLayoutMode = "default" | "hipsBottomCenter";
 
 interface ModelColors {
   skeleton: string;
@@ -189,6 +190,7 @@ export const drawPosesOnCanvas = (
     fitMode?: "fill" | "cover" | "contain";
     renderWidth?: number;
     renderHeight?: number;
+    layoutMode?: VideoPoseLayoutMode;
   },
 ) => {
   const ctx = canvas.getContext("2d");
@@ -207,6 +209,7 @@ export const drawPosesOnCanvas = (
 
   const opacity = options?.opacity ?? 1;
   const fitMode = options?.fitMode ?? "fill";
+  const layoutMode = options?.layoutMode ?? "default";
 
   ctx.save();
   ctx.globalAlpha = opacity;
@@ -223,6 +226,22 @@ export const drawPosesOnCanvas = (
     scaleY = uniformScale;
     offsetX = (renderWidth - video.videoWidth * uniformScale) / 2;
     offsetY = (renderHeight - video.videoHeight * uniformScale) / 2;
+  }
+
+  if (layoutMode === "hipsBottomCenter") {
+    const bbox = calculateBoundingBox(poses);
+    const hipCenter = calculateHipCenter(poses);
+
+    if (hipCenter && bbox.height > 0) {
+      const upperBodyHeight = Math.max(hipCenter.y - bbox.minY, bbox.height * 0.35, 1);
+      const targetHeight = renderHeight * 0.8;
+      const uniformScale = targetHeight / upperBodyHeight;
+
+      scaleX = uniformScale;
+      scaleY = uniformScale;
+      offsetX = renderWidth / 2 - hipCenter.x * uniformScale;
+      offsetY = renderHeight * 0.92 - hipCenter.y * uniformScale;
+    }
   }
 
   logger.log(
@@ -275,6 +294,30 @@ export const drawPosesOnCanvas = (
   });
 
   ctx.restore();
+};
+
+const calculateHipCenter = (poses: poseDetection.Pose[]) => {
+  for (const pose of poses) {
+    const leftHip = pose.keypoints.find((kp) => kp.name === "left_hip");
+    const rightHip = pose.keypoints.find((kp) => kp.name === "right_hip");
+
+    if (leftHip && rightHip && isVisibleKeypoint(leftHip) && isVisibleKeypoint(rightHip)) {
+      return {
+        x: (leftHip.x + rightHip.x) / 2,
+        y: (leftHip.y + rightHip.y) / 2,
+      };
+    }
+
+    const fallbackHip = [leftHip, rightHip].find(
+      (kp): kp is poseDetection.Keypoint => !!kp && isVisibleKeypoint(kp),
+    );
+
+    if (fallbackHip) {
+      return { x: fallbackHip.x, y: fallbackHip.y };
+    }
+  }
+
+  return null;
 };
 
 // Calculate bounding box for visible keypoints

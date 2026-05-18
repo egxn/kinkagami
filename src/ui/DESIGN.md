@@ -142,11 +142,13 @@ These screens form the gesture-controlled runtime experience. They are always ac
 | **Routines** | `/stack/routines` (default) | Lists saved routines one at a time. The user selects a routine via gesture and navigates to the session. Routines can be deleted from this screen. |
 | **Exercises** | `/stack/exercises` | Lists available exercises one at a time. The user selects exercises and configures reps to compose a new routine, then saves it. |
 | **Session** | `/stack/session` | Active workout session. Composed of two overlapping layers: **Trainer** (pose comparison + FSM evaluation) and **Score** (live score overlay). Both share a `SessionComparisonContext`. |
+| **Play Box** | `/play/box` | First game screen under the Play namespace. Currently an empty placeholder for upcoming mini-games. |
 | **Settings** | `/settings` | Placeholder settings screen. Not yet implemented. |
 | **Error** | `/error` | Displayed when camera or model initialization fails. Shows the specific error message. |
 | **Summary** | `/summary` | Post-session summary screen. Not yet implemented. |
 
 > The root path `/` redirects to `/stack/splash`.
+> The path `/play` redirects to `/play/box`.
 > `Canvas` is not a routed screen — it is a persistent background layer that runs pose and hand detection continuously, active across all stack routes.
 
 ---

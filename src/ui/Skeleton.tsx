@@ -5,6 +5,7 @@ import {
   drawPosesOnCanvas,
   drawRecordedPose,
   type PoseModelKind,
+  type VideoPoseLayoutMode,
 } from "../utils/canvasDrawing";
 import type { Exercise } from "../types/exercise";
 import "./Skeleton.scss";
@@ -30,6 +31,7 @@ export interface SkeletonProps {
   opacity?: number;
   colors?: SkeletonColors;
   poseModel?: PoseModelKind;
+  videoLayoutMode?: VideoPoseLayoutMode;
 }
 
 const DEFAULT_WIDTH = 640;
@@ -49,6 +51,7 @@ export default function Skeleton({
   opacity = 1,
   colors,
   poseModel = "auto",
+  videoLayoutMode = "default",
 }: SkeletonProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -121,6 +124,7 @@ export default function Skeleton({
         keypointColor,
         poseModel,
         fitMode: "cover",
+        layoutMode: videoLayoutMode,
         renderWidth: displayW,
         renderHeight: displayH,
       });
@@ -159,6 +163,7 @@ export default function Skeleton({
     size.w,
     variant,
     videoRef,
+    videoLayoutMode,
   ]);
 
   return (

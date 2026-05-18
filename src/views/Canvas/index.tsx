@@ -1,4 +1,5 @@
 import { useEffect, useCallback, memo, useState } from "react";
+import type { CSSProperties } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import { useLocation } from "react-router-dom";
 import usePoseContext from "../../context/usePoseContext";
@@ -6,7 +7,20 @@ import { useHandPose, usePoseDetection } from "../../hooks";
 import { logger } from "../../utils/logger";
 import Skeleton from "../../components/Skeleton";
 
-function Canvas() {
+interface CanvasProps {
+  turnOffVideo?: boolean;
+  skeletonCoords?: {
+    style?: CSSProperties;
+    layoutMode?: "default" | "hipsBottomCenter";
+  };
+  onPosesDetected?: (poses: poseDetection.Pose[]) => void;
+}
+
+function Canvas({
+  turnOffVideo = false,
+  skeletonCoords,
+  onPosesDetected,
+}: CanvasProps) {
   const location = useLocation();
   const { videoRef, stream, detector, modelLoading, streamReady } =
     usePoseContext();
@@ -37,8 +51,9 @@ function Canvas() {
       const video = videoRef.current;
       if (!video) return;
       setPoses(poses);
+      onPosesDetected?.(poses);
     },
-    [videoRef],
+    [onPosesDetected, videoRef],
   );
 
   // Use pose detection hook
@@ -106,24 +121,50 @@ function Canvas() {
     };
   }, [stream, videoRef]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.style.opacity = turnOffVideo ? "0" : "1";
+
+    return () => {
+      video.style.opacity = "1";
+    };
+  }, [turnOffVideo, videoRef]);
+
+  const skeletonStyle: CSSProperties = skeletonCoords?.style
+    ? {
+        position: "absolute",
+        transform: "scaleX(-1)",
+        ...skeletonCoords.style,
+      }
+    : {
+        position: "absolute",
+        inset: 0,
+        transform: "scaleX(-1)",
+      };
+
   return (
     <div
       style={{
         position: "absolute",
         inset: 0,
-        transform: "scaleX(-1)",
         border: "none",
         pointerEvents: "none",
+        overflow: "hidden",
       }}
     >
-      <Skeleton
-        variant="video"
-        autoSize
-        videoRef={videoRef}
-        poses={useHandPoseRoute ? [] : poses}
-        opacity={1}
-        poseModel="movenet"
-      />
+      <div style={skeletonStyle}>
+        <Skeleton
+          variant="video"
+          autoSize
+          videoRef={videoRef}
+          poses={useHandPoseRoute ? [] : poses}
+          opacity={1}
+          poseModel="movenet"
+          videoLayoutMode={skeletonCoords?.layoutMode ?? "default"}
+        />
+      </div>
     </div>
   );
 }

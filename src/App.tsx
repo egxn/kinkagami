@@ -7,6 +7,7 @@ import Create from "./views/Create";
 import Error from "./views/Error";
 import Models from "./views/Models";
 import Player from "./views/Player";
+import Play from "./views/Play";
 import Settings from "./views/Settings";
 import Stack from "./views/Stack";
 import Summary from "./views/Summary";
@@ -70,6 +71,7 @@ function App() {
                 />
 
                 <Route path="/stack/*" element={<Stack />} />
+                <Route path="/play/*" element={<Play />} />
 
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/config" element={<Config />} />
