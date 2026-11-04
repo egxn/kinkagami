@@ -24,8 +24,11 @@ dist-ssr
 *.sw?
 
 # Videos
-public/videos/
+**/public/videos/
 
 .pnpm-store
 
 
+
+# Local dev HTTPS certificates (private keys)
+.certs/

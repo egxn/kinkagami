@@ -92,16 +92,19 @@ Providers live in `src/inference/providers/` and are never imported directly by 
 
 ## 5. UI Library Layer
 
-Pure presentational components live in `src/ui/`. They have no dependencies on hooks, context, or services — only React, types, and SCSS.
+Pure presentational components live in the shared package `packages/ui` (`@kgm/ui`), used by both the embedded and web clients. They depend only on React, `@kgm/core` types and SCSS: no hooks into app state, context, i18n, routing, TF.js or storage (ESLint enforces it). Text arrives through `labels`/props (e.g. `RoutineCard labels={{ exercisesCount }}`), data through props, behavior through callbacks. Skeleton drawing (`canvasDrawing`) ships its own pose topology constants, so it does not need TF.js.
 
-Connected wrappers in `src/components/` inject project-specific logic (hooks, context, services) into the UI components.
+Design tokens (`--kgm-button-*`, themes) live in `@kgm/ui/tokens.css`; each app imports it once at its root.
+
+Connected wrappers in `apps/embedded/src/components/` inject project-specific logic (hooks, context, i18n, services) into the UI components.
 
 ```
-src/ui/          → Pure components (Button, Skeleton, ExerciseCard, etc.)
-src/components/  → Connected wrappers (Button + useHandPose, etc.)
+packages/ui/src/                → Pure components (Button, Skeleton, ExerciseCard, ...) + tokens.css
+apps/embedded/src/components/   → Connected wrappers (Button + useHandPose, t() labels, ...)
+apps/web/src/                   → Uses components directly (RoutineCard, drawPosesOnCanvas)
 ```
 
-This separation allows updating the UI independently from project logic.
+This separation allows updating the UI independently from project logic and sharing it across clients.
 
 ---
 
@@ -150,6 +153,7 @@ Validation behavior in Trainer is config-driven:
 
 - `evaluation.type = fsm`: score from FSM/event-graph metrics
 - `evaluation.type = grid`: score from grid metrics
+- `evaluation.type = hybrid`: unified `overallScore` — FSM progress and grid progress (60/40 when both exist) scaled by an accuracy multiplier (0.8–1.0) built from centering quality and tempo compliance (`time_constraints`)
 
 ---
 
@@ -170,7 +174,7 @@ This logic is deterministic and state-driven.
 
 ## 9. Configuration Architecture
 
-Configuration is seeded from `src/config/defaultAppConfig.json` and persisted in localStorage.
+Configuration is seeded from `apps/embedded/src/config/defaultAppConfig.json` and persisted in localStorage.
 
 Current config domains:
 
@@ -185,13 +189,13 @@ Current config domains:
   - `backend`: `webgl` | `wasm`
   - `pythonWebSocketUrl`: WebSocket URL for Python backend
 - `evaluation`:
-  - `type`: `fsm` | `grid`
+  - `type`: `fsm` | `grid` | `hybrid`
 
 Config updates are propagated through a custom window event so active views can react without reload.
 
 The configuration wizard (`pnpm configure`) generates this file interactively.
 
-A separate `src/config/testAppConfig.json` provides browser-friendly defaults (webgl, site execution) for the test suite, loaded automatically in test setup.
+A separate `apps/embedded/src/config/testAppConfig.json` provides browser-friendly defaults (webgl, site execution) for the test suite, loaded automatically in test setup.
 
 ### Build-time overrides
 
@@ -226,7 +230,7 @@ Caching strategy:
 
 This two-phase approach keeps the install cache small (~3.7 MB app shell) and defers model caching (potentially 50–200 MB) until models are actually used.
 
-PWA icons are generated from `public/icons/kinkagami-source.svg` using `@vite-pwa/assets-generator`:
+PWA icons are generated from `apps/embedded/public/icons/kinkagami-source.svg` using `@vite-pwa/assets-generator`:
 
 ```bash
 pnpm pwa:icons    # regenerate if source SVG changes
@@ -247,12 +251,12 @@ Node.js 22+ is required for `pnpm build:pwa` and `pnpm dev:pwa` (Vite 7 + Workbo
 
 ## 12. Offline Model Assets
 
-Model assets are served locally from `public/models`.
+Model assets are served locally from `apps/embedded/public/models`.
 
 Highlights:
 
 - MoveNet: local TFJS model URLs
-- BlazePose: local MediaPipe assets under `public/models/blazepose/mediapipe`
+- BlazePose: local MediaPipe assets under `apps/embedded/public/models/blazepose/mediapipe`
 - HandPose: local detector/landmark model paths
 
 For V1/V2, models load directly from the filesystem on app start. For V3 (PWA), models are fetched over HTTP on first use and cached by the Workbox `CacheFirst` handler — identical behavior from the inference layer's perspective.
@@ -260,6 +264,49 @@ For V1/V2, models load directly from the filesystem on app start. For V3 (PWA), 
 ---
 
 ## 13. Project Structure
+
+The repository is a pnpm workspace. One codebase, several clients, one shared core:
+
+```
+apps/embedded/    Current app (V1 / V2 / V3) — offline-first, board/device
+apps/mobile/      Reserved: React Native client (not implemented)
+packages/core/    @kgm/core — platform-agnostic logic + ports
+packages/ui/      @kgm/ui — presentational components + design tokens
+backend/          Python WebSocket backend (V1 only)
+setup/            Repo-level shell scripts
+```
+
+`apps/web` is an online client served by URL, built as a separate Vite + React Router app over the same core. It does not replace the embedded PWA (which targets offline boards/devices).
+
+### 13.0 Web client (`apps/web`)
+
+- **Model gate:** `ModelGate` blocks the app until the selected MoveNet weights are in the Cache API (`kgm-web-models-v1`), showing download progress on first visit. The Workbox `CacheFirst` rule for `/models/` uses the same cache name, so the service worker serves what the gate stored. Shard lists come from each `model.json` manifest.
+- **Model hosting:** weights live once, in `apps/embedded/public/models`. In dev a Vite plugin serves `movenet/` from there. Production builds set `VITE_KGM_MODELS_BASE_URL` (`.env.production`) to a CDN (jsDelivr over the public GitHub repo), so nothing is bundled and `dist/` stays small; the gate and the service worker cache the CDN responses (CORS required). `pnpm check:models-cdn` verifies the CDN serves every file. Without the variable (e.g. self-hosting), the plugin copies the weights into `dist/models/movenet`.
+- **Dev data sync:** in dev the Vite server exposes `/__kgm/embedded-data`, which reads embedded's LevelDB (a temp snapshot, so locks never conflict) and seed JSON (`src/db/{exercises,routines}`); the web app upserts it into its IndexedDB when empty. Dev-only, tree-shaken from production builds.
+- **Dev HTTPS:** `setup/dev-cert.sh` (mkcert, or openssl with a private local CA) writes `.certs/`; `setup/dev-hosts.sh` manages a marked `/etc/hosts` block for `*.kinkagami.test`; `setup/dev-https.mjs` feeds both Vite configs (`KGM_DEV_HTTPS`, `KGM_DEV_LAN`).
+- **Data portability:** embedded exports a `DataBundle` (`createDataBundle` in `@kgm/core`: exercises + routines, `_rev` stripped); the web importer accepts it directly.
+- **Shared UI:** components come from `@kgm/ui` (e.g. `RoutineCard`, canvas pose drawing); tokens from `@kgm/ui/tokens.css`.
+- **Inference:** MoveNet on the main thread (WebGL, CPU fallback).
+- **Data:** PouchDB (IndexedDB) behind the core repository ports; exercises/routines are imported from JSON.
+- **Flow:** `stepTrainerSession`, `createSessionComparator` and `selectScorePercent` from `@kgm/core` drive reps/score exactly as in embedded.
+
+### 13.1 `@kgm/core` and ports
+
+`packages/core` holds everything that must behave identically on every client: pose types/geometry, the exercise model, session comparator (FSM, grid, tempo via `time_constraints`, unified `overallScore`), exercise generator, the `trainerSession` state machine (rep/exercise/routine progression and the 80/70 hysteresis), and the `AppConfig` schema + sanitizer.
+
+It has no DOM lib, no React, no TF.js, no PouchDB, no i18n (enforced by tsconfig and ESLint) and is consumed as TypeScript source. Clients are connected through **ports** implemented per client:
+
+| Port | Embedded adapter | Mobile (planned) |
+|---|---|---|
+| `ExerciseRepository`, `RoutineRepository` | PouchDB (`platform/repositories.ts`) | SQLite / AsyncStorage |
+| `ConfigStore` | localStorage (`platform/configStore.ts`) | AsyncStorage |
+| `PoseSource` | existing inference providers (not yet wired through the port) | VisionCamera + native model |
+
+`apps/web` implements the same repository/config ports with `pouchdb-browser` and localStorage (`apps/web/src/platform/`).
+
+Each client's composition root binds ports to implementations (embedded: `src/platform/`, one module per port so config code never imports PouchDB). Target selection (`runtime.execution`) stays build-time.
+
+### 13.2 `apps/embedded/src/`
 
 ```
 src/
@@ -269,17 +316,17 @@ src/
 │   ├── useHandInference.ts    Unified hand detection hook
 │   ├── resolveBackend.ts      Config → backend resolver
 │   └── types.ts               Shared inference types
-├── ui/                  Pure presentational components (no project deps)
 ├── components/          Connected wrappers (inject hooks/context/services)
+├── platform/            Adapters for @kgm/core ports (PouchDB, localStorage)
 ├── hooks/               Application hooks (thin delegates for inference)
 ├── context/             React context providers
-├── services/            Business logic (session comparator, hand detection loop)
+├── services/            Client-side services (hand detection loop)
 ├── views/               Page-level views (Trainer, Canvas, Models, Create, Config)
-├── types/               TypeScript type definitions
+├── types/               Client-only types
 ├── config/              Default and test app configuration
-├── db/                  Database service, exercise/routine seeds
-├── workers/             Web Worker implementations (MoveNet)
-├── utils/               Utility functions
+├── db/                  Database service (PouchDB)
+├── workers/             Web Worker implementations (MoveNet, session comparator)
+├── utils/               Browser utilities (config persistence, canvas drawing, logger)
 ├── locales/             i18n translation files
 └── tests/               Test suite
 ```

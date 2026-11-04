@@ -1,0 +1,23 @@
+{
+  "name": "@kgm/core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Platform-agnostic Kinkagami logic: pose math, exercise model, scoring, trainer flow, config schema and ports. No DOM, React or TF.js.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^3.2.4"
+  }
+}

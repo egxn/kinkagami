@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # ─── Kinkagami Configuration Wizard ─────────────────────────────────────────
-# Generates src/config/defaultAppConfig.json based on user selections.
+# Generates apps/embedded/src/config/defaultAppConfig.json based on user selections.
 # Run: ./setup/configure.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONFIG_FILE="$PROJECT_ROOT/src/config/defaultAppConfig.json"
+CONFIG_FILE="$PROJECT_ROOT/apps/embedded/src/config/defaultAppConfig.json"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ fi
 # --- Evaluation ---
 section "Evaluation"
 
-pick "Evaluation type:" "fsm" "fsm" "grid"
+pick "Evaluation type:" "fsm" "fsm" "grid" "hybrid"
 EVAL_TYPE="$REPLY"
 
 # ─── Generate Config ─────────────────────────────────────────────────────────
